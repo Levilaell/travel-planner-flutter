@@ -1,3 +1,5 @@
+# views.py
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
@@ -17,43 +19,34 @@ def create_itinerary_view(request):
     if request.method == 'POST':
         form = ItineraryForm(request.POST)
         if form.is_valid():
-            # 1. Cria o objeto Itinerary (sem salvar completamente)
             itinerary = form.save(commit=False)
             itinerary.user = request.user
 
-            # 2. Captura lista de interesses e converte em string
             selected_interests = request.POST.getlist('interests_list')
             interests_str = ', '.join(selected_interests)
             itinerary.interests = interests_str
 
-            # 3. Salva o Itinerary (sem overview ainda)
             itinerary.save()
 
-            # 4. Obtém coordenadas do destino
             lat, lng = get_cordinates_google_geocoding(itinerary.destination)
             itinerary.lat = lat
             itinerary.lng = lng
 
-            # 5. Gera overview do itinerário
             overview = generate_itinerary_overview(itinerary)
             itinerary.generated_text = overview
             itinerary.save()
 
-            # 6. Gera dias
             current_date = itinerary.start_date
             day_number = 1
-            visited_places_list = []  # Acumula lugares já visitados
+            visited_places_list = []
 
             while current_date <= itinerary.end_date:
-                # Cria o Day
                 day = Day.objects.create(
                     itinerary=itinerary,
                     day_number=day_number,
                     date=current_date
                 )
 
-                # 7. Gera texto do dia usando plan_one_day_itinerary
-                #    que já evita lugares repetidos (usando visited_places_list)
                 day_text, final_places = plan_one_day_itinerary(
                     itinerary=itinerary,
                     day=day,
@@ -62,9 +55,7 @@ def create_itinerary_view(request):
                 day.generated_text = day_text
                 day.save()
 
-                # 8. Atualiza visited_places_list com os lugares confirmados
                 visited_places_list.extend(final_places)
-
                 current_date += timedelta(days=1)
                 day_number += 1
 
@@ -86,8 +77,6 @@ def list_itineraries_view(request):
 def itinerary_detail_view(request, pk):
     itinerary = get_object_or_404(Itinerary, pk=pk, user=request.user)
     days = itinerary.days.all().order_by('day_number')
-
-    # Exemplo de uso para dados de clima (opcional)
     weather_data = get_weather_info(itinerary.destination)
 
     context = {

@@ -1,3 +1,5 @@
+# services.py
+
 import os
 import json
 import openai
@@ -8,6 +10,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 openai.api_key = os.getenv('OPENAI_KEY')
+
 
 #############################
 # 1) Overview do itinerário
@@ -176,7 +179,7 @@ def find_optimal_route(locations, distance_matrix):
 
 
 #############################
-# 6) Texto final do dia
+# 6) Texto final do dia (GPT)
 #############################
 
 def generate_day_text_gpt(itinerary, day, ordered_places, weather_info=None):
@@ -184,7 +187,6 @@ def generate_day_text_gpt(itinerary, day, ordered_places, weather_info=None):
     day_title = f"Dia {day.day_number} - {date_formatted}"
     destination = itinerary.destination
 
-    # Previsão de tempo simples (opcional)
     if weather_info and weather_info.get("main"):
         temp_min = round(weather_info["main"].get("temp_min", 0))
         temp_max = round(weather_info["main"].get("temp_max", 0))
@@ -197,7 +199,6 @@ def generate_day_text_gpt(itinerary, day, ordered_places, weather_info=None):
     visited_names = [loc['name'] for loc in ordered_places]
     visited_str = ", ".join(visited_names) if visited_names else "Nenhum"
 
-    # Prompt personalizado
     prompt = f"""
 Você é um planejador de viagens inteligente e criativo.
 Gere um roteiro detalhado para o dia, no formato abaixo:
@@ -291,20 +292,23 @@ def search_place_in_google_maps(place_name, location="48.8566,2.3522", radius=50
 #############################
 
 def plan_one_day_itinerary(itinerary, day, already_visited=None):
-    """
-    Retorna: (day_text, final_places_list)
-      - day_text: string final gerada
-      - final_places_list: lista com os lugares efetivamente usados (p/ evitar repetição)
-    """
     if already_visited is None:
         already_visited = []
 
-    # Passo 1: Sugerir lugares
-    raw_places = suggest_places_gpt(itinerary, day.day_number, already_visited)
+    # -------------------------------------------
+    # 1) Tentar Sugerir lugares (GPT) até 3 vezes
+    # -------------------------------------------
+    max_attempts = 3
+    raw_places = []
+    for attempt in range(1, max_attempts + 1):
+        raw_places = suggest_places_gpt(itinerary, day.day_number, already_visited)
+        if raw_places:  # Se não for vazio, ok
+            break
+    # Se depois de 3 tentativas ainda vazio, cancelamos
     if not raw_places:
-        return ("Não foi possível encontrar locais para este dia.", [])
+        return ("Não foi possível encontrar locais para este dia após 3 tentativas.", [])
 
-    # Filtro manual p/ remover duplicados e places já visitados
+    # 2) Filtro manual p/ remover duplicados e places já visitados
     lower_visited = [p.lower() for p in already_visited]
     filtered_places = []
     for p in raw_places:
@@ -314,7 +318,7 @@ def plan_one_day_itinerary(itinerary, day, already_visited=None):
     if not filtered_places:
         return ("Todos os lugares sugeridos já foram visitados ou são duplicados.", [])
 
-    # Passo 2: Obter lat/lng
+    # 3) Obter lat/lng
     reference_location = f"{itinerary.lat},{itinerary.lng}" if itinerary.lat and itinerary.lng else "48.8566,2.3522"
     locations = []
     for place in filtered_places:
@@ -329,27 +333,31 @@ def plan_one_day_itinerary(itinerary, day, already_visited=None):
     if not locations:
         return ("Não foi possível obter coordenadas para os locais sugeridos.", [])
 
-    # Passo 3: Distâncias
+    # 4) Distâncias
     distance_matrix = build_distance_matrix(locations)
     if not distance_matrix:
         return ("Não foi possível calcular distâncias entre os locais.", [])
 
-    # Passo 4: Rota
+    # 5) Rota
     route_indices = find_optimal_route(locations, distance_matrix)
     route_ordered = [locations[i] for i in route_indices]
 
-    # Passo 5: Gera texto final
+    # 6) Gera texto final
     weather_data = get_weather_info(itinerary.destination)
     raw_day_text = generate_day_text_gpt(itinerary, day, route_ordered, weather_info=weather_data)
 
-    # Passo 6: Verificar endereços
+    # 7) Verificar endereços
     verified_text = verify_and_update_places(raw_day_text, itinerary.lat, itinerary.lng)
 
-    # Monta lista final de lugares confirmados
+    # Monta lista final de nomes confirmados
     final_place_names = [loc["name"] for loc in route_ordered]
 
-    return (verified_text, final_place_names)
+    # SALVA a lista de lugares (com lat/lng) no campo places_visited do Day (JSON serializado)
+    import json
+    day.places_visited = json.dumps(route_ordered, ensure_ascii=False)
+    day.save(update_fields=["places_visited"])
 
+    return (verified_text, final_place_names)
 
 #############################
 # 9) Outras utilidades

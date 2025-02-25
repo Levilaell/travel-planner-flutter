@@ -2,6 +2,8 @@
 
 from django.db import models
 from django.contrib.auth.models import User
+# Se quiser JSONField nativo (Django 3.1+), você pode usar:
+# from django.db.models import JSONField
 
 class Itinerary(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -28,14 +30,10 @@ class Itinerary(models.Model):
 
     @property
     def total_days(self):
-        """Quantidade de dias entre start_date e end_date (inclusivo)."""
         return (self.end_date - self.start_date).days + 1
 
 
 class Day(models.Model):
-    """
-    Representa um dia específico dentro do Itinerary.
-    """
     itinerary = models.ForeignKey(Itinerary, on_delete=models.CASCADE, related_name='days')
     day_number = models.PositiveIntegerField()
     date = models.DateField()
@@ -43,9 +41,13 @@ class Day(models.Model):
     # Texto gerado pela IA para este dia
     generated_text = models.TextField(null=True, blank=True)
 
-    # Opcional: campo para armazenar lista (parseada) das atrações visitadas
-    places_visited = models.TextField(null=True, blank=True)  
-    # Ex: "Basílica de Sacré-Cœur, Place du Tertre, Museu do Louvre, ..."
+    # Aqui armazenamos a lista de locais visitados (serializada em JSON).
+    places_visited = models.TextField(null=True, blank=True)
+    # Exemplo:
+    # [
+    #   {"name": "Torre Eiffel", "lat":48.8584, "lng":2.2945},
+    #   {"name": "Museu do Louvre", "lat":48.8606, "lng":2.3376}
+    # ]
 
     created_at = models.DateTimeField(auto_now_add=True)
 
