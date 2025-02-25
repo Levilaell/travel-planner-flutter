@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load markdownify %}
+
+{% block content %}
+<h2>Roteiro Gerado</h2>
+<div class="card mb-4">
+  <div class="card-body">
+    <p><strong>Destino:</strong> {{ itinerary.destination }}</p>
+    <p><strong>Data Inicial:</strong> {{ itinerary.start_date }}</p>
+    <p><strong>Data Final:</strong> {{ itinerary.end_date }}</p>
+    <p><strong>Orçamento:</strong> {{ itinerary.budget }}</p>
+    <p><strong>Viajantes:</strong> {{ itinerary.travelers }}</p>
+    <p><strong>Interesses:</strong> {{ itinerary.interests }}</p>
+    <p><strong>Preferências de alimentação:</strong> {{ itinerary.food_preferences }}</p>
+    <p><strong>Extras:</strong> {{ itinerary.extras }}</p>
+    <p><strong>Modo de transporte:</strong> {{ itinerary.transport_mode }}</p>
+    <p><strong>Lugares de interesse:</strong> {{ itinerary.interest_places }}</p>
+  </div>
+</div>
+
+<div class="mb-3">
+  <h4>Texto Gerado pela IA:</h4>
+  <div class="p-3 border bg-light montserrat">
+    {{ itinerary.generated_text|markdownify }}
+  </div>
+</div>
+
+<a href="{% url 'list_itineraries' %}" class="btn btn-secondary">Voltar aos meus roteiros</a>
+{% endblock %}
+
+{% if lat and lng %}
+<script>
+  function initMap() {
+    // Converte as strings em números para o Maps
+    const coords = { lat: parseFloat('{{ lat }}'), lng: parseFloat('{{ lng }}') };
+    const map = new google.maps.Map(document.getElementById("map"), {
+      zoom: 12,
+      center: coords,
+    });
+    new google.maps.Marker({
+      position: coords,
+      map: map,
+      title: "Destino: {{ itinerary.destination }}"
+    });
+  }
+</script>
+<script async
+  src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&callback=initMap">
+</script>
+{% endif %}

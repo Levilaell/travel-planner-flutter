@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% load markdownify %}
+{% block content %}
+
+<h2><strong>Detalhes do Itinerário</strong></h2>
+<div class="card mb-4">
+  <div class="card-body">
+    <p><strong>Destino:</strong> {{ itinerary.destination }}</p>
+    <p><strong>Data Inicial:</strong> {{ itinerary.start_date }}</p>
+    <p><strong>Data Final:</strong> {{ itinerary.end_date }}</p>
+    <p><strong>Orçamento:</strong> {{ itinerary.budget }}</p>
+    <p><strong>Viajantes:</strong> {{ itinerary.travelers }}</p>
+    <p><strong>Interesses:</strong> {{ itinerary.interests }}</p>
+    <p><strong>Preferências de alimentação:</strong> {{ itinerary.food_preferences }}</p>
+    <p><strong>Extras:</strong> {{ itinerary.extras }}</p>
+    <p><strong>Modo de transporte:</strong> {{ itinerary.transport_mode }}</p>
+    <p><strong>Lugares de interesse:</strong> {{ itinerary.interest_places }}</p>
+  </div>
+</div>
+
+<!-- Overview Geral -->
+<div class="mb-3">
+  <h4>Texto Geral (IA) - Overview:</h4>
+  <div class="p-3 border bg-light montserrat">
+    {{ itinerary.generated_text|markdownify }}
+  </div>
+</div>
+
+<!-- Clima -->
+{% if weather_data %}
+  <div class="card mb-3">
+    <div class="card-body">
+      <h5>Clima atual em {{ itinerary.destination }}:</h5>
+      <p><strong>Temperatura:</strong> {{ weather_data.main.temp }} °C</p>
+      <p><strong>Descrição:</strong> {{ weather_data.weather.0.description }}</p>
+      <p><strong>Umidade:</strong> {{ weather_data.main.humidity }}%</p>
+      <p><strong>Vento:</strong> {{ weather_data.wind.speed }} m/s</p>
+    </div>
+  </div>
+{% else %}
+  <p>Não foi possível obter dados de clima para {{ itinerary.destination }}.</p>
+{% endif %}
+
+<!-- Mapa -->
+{% if lat and lng %}
+  <h5>Mapa do destino:</h5>
+  <div id="map" style="height: 400px;"></div>
+{% else %}
+  <p>Não foi possível exibir o mapa para {{ itinerary.destination }}.</p>
+{% endif %}
+
+<!-- Seção: Roteiro Dia a Dia -->
+{% if days %}
+  <h3 class="mt-5">Roteiro Dia a Dia</h3>
+  <div class="row row-cols-1 row-cols-md-2 g-4 mt-3">
+    {% for day in days %}
+      <div class="col">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Dia {{ day.day_number }} - {{ day.date }}</h5>
+            {% if day.generated_text %}
+              <div class="card-text">
+                {{ day.generated_text|markdownify|linebreaksbr }}
+              </div>
+            {% else %}
+              <p>Nenhum roteiro gerado para este dia.</p>
+            {% endif %}
+          </div>
+          <!-- Se quiser um “rodapé” com link para detalhar mais o dia -->
+          <!-- 
+          <div class="card-footer text-center">
+            <a href="{% url 'day_detail' itinerary.pk day.pk %}" class="btn btn-sm btn-outline-primary">
+              Ver Detalhes
+            </a>
+          </div>
+          -->
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="mt-4">Nenhum dia cadastrado neste itinerário.</p>
+{% endif %}
+
+<a href="{% url 'list_itineraries' %}" class="btn btn-secondary mt-4">Voltar</a>
+
+{% endblock %}
+
+{% block extra_scripts %}
+{% if lat and lng %}
+<script>
+  function initMap() {
+    // Converte as strings em números para o Maps
+    const coords = { lat: parseFloat('{{ lat }}'), lng: parseFloat('{{ lng }}') };
+    
+    // Cria o mapa centrado nas coordenadas do itinerário
+    const map = new google.maps.Map(document.getElementById("map"), {
+      zoom: 12,
+      center: coords,
+    });
+    
+    // Adiciona um marcador para indicar o destino
+    new google.maps.Marker({
+      position: coords,
+      map: map,
+      title: "Destino: {{ itinerary.destination }}"
+    });
+  }
+</script>
+
+<!-- Carrega a API do Google Maps com sua chave e a função de callback -->
+<script async
+  src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&callback=initMap">
+</script>
+{% endif %}
+{% endblock %}

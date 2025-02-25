@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Meus Itinerários</h2>
+{% if itineraries %}
+  <ul class="list-group mb-3">
+    {% for itinerary in itineraries %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+          <strong>{{ itinerary.destination }}</strong> ({{ itinerary.start_date }} - {{ itinerary.end_date }})
+        </div>
+        <a href="{% url 'itinerary_detail' itinerary.pk %}" class="btn btn-sm btn-outline-primary">
+          Detalhes
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>Você ainda não criou nenhum itinerário.</p>
+{% endif %}
+<a href="{% url 'create_itinerary' %}" class="btn btn-primary">Criar Novo</a>
+{% endblock %}
