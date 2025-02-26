@@ -298,7 +298,7 @@ def plan_one_day_itinerary(itinerary, day, already_visited=None):
     # -------------------------------------------
     # 1) Tentar Sugerir lugares (GPT) até 3 vezes
     # -------------------------------------------
-    max_attempts = 3
+    max_attempts = 5
     raw_places = []
     for attempt in range(1, max_attempts + 1):
         raw_places = suggest_places_gpt(itinerary, day.day_number, already_visited)
@@ -306,7 +306,7 @@ def plan_one_day_itinerary(itinerary, day, already_visited=None):
             break
     # Se depois de 3 tentativas ainda vazio, cancelamos
     if not raw_places:
-        return ("Não foi possível encontrar locais para este dia após 3 tentativas.", [])
+        return ("Não foi possível encontrar locais para este dia após 5 tentativas.", [])
 
     # 2) Filtro manual p/ remover duplicados e places já visitados
     lower_visited = [p.lower() for p in already_visited]
