@@ -1,114 +1,238 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% load static %}
+
 {% block content %}
-<div class="container my-5">
-  <div class="form-card p-4 shadow-lg">
-    <h2 class="text-center mb-4">Criar Novo Itinerário</h2>
-    
-    <!-- Exibição de erros gerais do formulário (caso existam) -->
-    {% if form.errors %}
-      <div class="alert alert-danger">
-        <ul>
-          {% for field, errors in form.errors.items %}
-            {% for error in errors %}
-              <li><strong>{{ field }}:</strong> {{ error }}</li>
+<style>
+  /* ====== Exemplo de estilo baseado em cores dark, similar ao getimg.ai ====== */
+
+  /* Remove espaçamento default do body e define fundo geral escuro */
+  body {
+    background-color: #18181b;
+    color: #ffffff;
+    font-family: 'Montserrat', sans-serif;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Altura mínima: tela inteira */
+  .full-height-row {
+    min-height: calc(100vh - 60px); /* Ajuste se tiver navbar */
+  }
+
+  /* Painel esquerdo (30%) */
+  .left-panel {
+    background-color: #1f1f23;
+    padding: 20px;
+  }
+
+  /* Painel direito (70%) */
+  .right-panel {
+    background-color: #18181b;
+    padding: 20px;
+    overflow-y: auto;
+  }
+
+  /* Estilizar títulos */
+  .left-panel h2 {
+    color: #ffffff;
+    margin-bottom: 1.5rem;
+  }
+
+  /* Campos de formulário (Bootstrap override) */
+  .left-panel .form-control {
+    background-color: #2c2c2e;
+    color: #ffffff;
+    border: 1px solid #3a3a3c;
+    border-radius: 6px;
+  }
+
+  /* Labels */
+  .left-panel .form-label {
+    color: #e2e2e2;
+    font-weight: 500;
+  }
+
+  /* Checkboxes e radios (textos) */
+  .left-panel .form-check-label {
+    color: #ccc;
+  }
+
+  /* Botão de submissão */
+  .left-panel button.btn-primary {
+    background-color: #4c4c4e;
+    border: none;
+  }
+  .left-panel button.btn-primary:hover {
+    background-color: #5c5c5e;
+  }
+
+  /* Exemplo de estilização do card da IA na direita */
+  .result-card {
+    background-color: #202023;
+    color: #ffffff;
+    border-radius: 8px;
+    padding: 20px;
+  }
+</style>
+
+<div class="container-fluid">
+  <div class="row full-height-row">
+
+    <!-- Painel Esquerdo (30%) -->
+    <div class="col-md-4 left-panel d-flex align-items-start flex-column">
+      <h2 class="mt-3">Criar Novo Itinerário</h2>
+
+      <!-- Exibição de erros (caso existam) -->
+      {% if form.errors %}
+        <div class="alert alert-danger w-100">
+          <ul class="mb-0">
+            {% for field, errors in form.errors.items %}
+              {% for error in errors %}
+                <li><strong>{{ field }}:</strong> {{ error }}</li>
+              {% endfor %}
             {% endfor %}
-          {% endfor %}
-        </ul>
-      </div>
-    {% endif %}
-    
-    <form method="POST" action="{% url 'create_itinerary' %}" class="row g-3">
-      {% csrf_token %}
+          </ul>
+        </div>
+      {% endif %}
 
-      <!-- 1. Destino -->
-      <div class="col-md-6">
-        <label for="destination" class="form-label">Destino</label>
-        <input type="text" class="form-control input-rounded" id="destination" name="destination" placeholder="Ex: Natal, Brasil" required>
-      </div>
+      <!-- Formulário em si -->
+      <form method="POST" action="{% url 'create_itinerary' %}" class="w-100">
+        {% csrf_token %}
 
-      <!-- 2. Datas de Viagem -->
-      <div class="col-md-6">
-        <label for="startDate" class="form-label">Data de Início</label>
-        <input type="date" class="form-control input-rounded" id="startDate" name="start_date" required>
-      </div>
-
-      <div class="col-md-6">
-        <label for="endDate" class="form-label">Data de Término</label>
-        <input type="date" class="form-control input-rounded" id="endDate" name="end_date" required>
-      </div>
-
-      <!-- 3. Orçamento Estimado -->
-      <div class="col-md-6">
-        <label for="budget" class="form-label">Orçamento Estimado (R$)</label>
-        <input type="number" step="0.01" class="form-control input-rounded" id="budget" name="budget" placeholder="Ex: 2000" required>
-      </div>
-
-      <!-- 4. Número de Viajantes -->
-      <div class="col-md-6">
-        <label for="travelers" class="form-label">Número de Viajantes</label>
-        <input type="number" class="form-control input-rounded" id="travelers" name="travelers" min="1" value="1">
-      </div>
-
-      <!-- 5. Interesses Principais -->
-      <div class="col-md-12">
-        <label class="form-label d-block">Interesses Principais</label>
-        <div class="d-flex flex-wrap gap-3">
-          <div class="form-check">
-            <!-- Repare que o name mudou para interests_list -->
-            <input class="form-check-input" type="checkbox" id="interestCultura" name="interests_list" value="Cultura">
-            <label class="form-check-label" for="interestCultura">Cultura</label>
+        <div class="row g-3">
+          <!-- Destino -->
+          <div class="col-12">
+            <label for="destination" class="form-label">Destino</label>
+            <input type="text" class="form-control" id="destination" 
+                   name="destination" placeholder="Ex: Natal, Brasil" required>
           </div>
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="interestGastronomia" name="interests_list" value="Gastronomia">
-            <label class="form-check-label" for="interestGastronomia">Gastronomia</label>
+
+          <!-- Data de Início -->
+          <div class="col-6">
+            <label for="startDate" class="form-label">Data de Início</label>
+            <input type="date" class="form-control" id="startDate" 
+                   name="start_date" required>
           </div>
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="interestAventura" name="interests_list" value="Aventura">
-            <label class="form-check-label" for="interestAventura">Aventura</label>
+
+          <!-- Data de Término -->
+          <div class="col-6">
+            <label for="endDate" class="form-label">Data de Término</label>
+            <input type="date" class="form-control" id="endDate" 
+                   name="end_date" required>
+          </div>
+
+          <!-- Orçamento -->
+          <div class="col-12">
+            <label for="budget" class="form-label">Orçamento Estimado (R$)</label>
+            <input type="number" step="0.01" class="form-control" 
+                   id="budget" name="budget" placeholder="Ex: 2000" required>
+          </div>
+
+          <!-- Número de Viajantes -->
+          <div class="col-12">
+            <label for="travelers" class="form-label">Número de Viajantes</label>
+            <input type="number" class="form-control" 
+                   id="travelers" name="travelers" min="1" value="1">
+          </div>
+
+          <!-- Interesses -->
+          <div class="col-12">
+            <label class="form-label d-block">Interesses Principais</label>
+            <div class="d-flex flex-wrap gap-3">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" 
+                       id="interestCultura" name="interests_list" value="Cultura">
+                <label class="form-check-label" for="interestCultura">Cultura</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" 
+                       id="interestGastronomia" name="interests_list" value="Gastronomia">
+                <label class="form-check-label" for="interestGastronomia">Gastronomia</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" 
+                       id="interestAventura" name="interests_list" value="Aventura">
+                <label class="form-check-label" for="interestAventura">Aventura</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Alimentação -->
+          <div class="col-12">
+            <label for="foodPreferences" class="form-label">Preferência de Alimentação</label>
+            <select class="form-select" id="foodPreferences" name="food_preferences">
+              <option value="nenhuma">Nenhuma Restrição</option>
+              <option value="vegana">Vegana</option>
+              <option value="vegetariana">Vegetariana</option>
+              <option value="kosher">Kosher</option>
+              <option value="halal">Halal</option>
+            </select>
+          </div>
+
+          <!-- Extras -->
+          <div class="col-12">
+            <label for="extras" class="form-label">Extras e Personalização</label>
+            <textarea class="form-control" id="extras" name="extras" rows="3"
+                      placeholder="Ex: Preciso de acessibilidade, viajo com crianças..."></textarea>
+          </div>
+
+          <!-- Transporte -->
+          <div class="col-12">
+            <label class="form-label">Modo de Transporte Preferido</label>
+            <select class="form-select" name="transport_mode">
+              <option value="driving">Carro</option>
+              <option value="walking">Caminhada</option>
+              <option value="bicycling">Bicicleta</option>
+              <option value="transit">Transporte Público</option>
+            </select>
+          </div>
+
+          <!-- Locais de Interesse -->
+          <div class="col-12">
+            <label for="interestPlaces" class="form-label">Locais de Interesse (opcional)</label>
+            <textarea class="form-control" id="interestPlaces" name="interest_places" rows="3"
+                      placeholder="Ex: Quero conhecer o Museu X, a Praia Y..."></textarea>
+          </div>
+
+          <div class="col-12 text-center">
+            <button type="submit" class="btn btn-primary w-100 btn-lg shadow-sm">
+              Gerar Roteiro
+            </button>
+          </div>
+
+        </div>
+      </form>
+    </div>
+
+    <!-- Painel Direito (70%) - Aqui entra o resultado da IA -->
+    <div class="col-md-8 right-panel">
+      {% if itinerary %}
+        <div class="result-card mb-3">
+          <h4 class="mb-3">Roteiro Gerado</h4>
+          <p><strong>Destino:</strong> {{ itinerary.destination }}</p>
+          <p><strong>Datas:</strong> {{ itinerary.start_date }} → {{ itinerary.end_date }}</p>
+          <p><strong>Orçamento:</strong> {{ itinerary.budget }}</p>
+          <p><strong>Viajantes:</strong> {{ itinerary.travelers }}</p>
+          <p><strong>Interesses:</strong> {{ itinerary.interests }}</p>
+          <p><strong>Alimentação:</strong> {{ itinerary.food_preferences }}</p>
+          <p><strong>Extras:</strong> {{ itinerary.extras }}</p>
+          <p><strong>Transporte:</strong> {{ itinerary.transport_mode }}</p>
+          <p><strong>Lugares:</strong> {{ itinerary.interest_places }}</p>
+          <hr>
+          <h5>Texto Gerado pela IA:</h5>
+          <div class="bg-dark p-3 rounded" style="white-space: pre-wrap;">
+            {{ itinerary.generated_text }}
           </div>
         </div>
-      </div>
+      {% else %}
+        <!-- Exemplo: Placeholder se nenhum itinerário foi gerado ainda -->
+        <div class="text-center text-secondary mt-5">
+          <h4>Nenhum itinerário ainda...</h4>
+          <p>Preencha o formulário à esquerda para gerar um novo roteiro!</p>
+        </div>
+      {% endif %}
+    </div>
 
-      <!-- 6. Preferência de Alimentação -->
-      <div class="col-md-6">
-        <label for="foodPreferences" class="form-label">Preferência de Alimentação</label>
-        <select class="form-select input-rounded" id="foodPreferences" name="food_preferences">
-          <option value="nenhuma">Nenhuma Restrição</option>
-          <option value="vegana">Vegana</option>
-          <option value="vegetariana">Vegetariana</option>
-          <option value="kosher">Kosher</option>
-          <option value="halal">Halal</option>
-        </select>
-      </div>
-
-      <!-- 7. Extras e Personalização -->
-      <div class="col-md-6">
-        <label for="extras" class="form-label">Extras e Personalização</label>
-        <textarea class="form-control input-rounded" id="extras" name="extras" rows="3" placeholder="Ex: Preciso de acessibilidade, viajo com crianças..."></textarea>
-      </div>
-
-      <!-- 8. Transporte Preferido -->
-      <div class="col-md-6">
-        <label class="form-label">Modo de Transporte Preferido</label>
-        <select class="form-select input-rounded" name="transport_mode">
-          <option value="driving">Carro</option>
-          <option value="walking">Caminhada</option>
-          <option value="bicycling">Bicicleta</option>
-          <option value="transit">Transporte Público</option>
-        </select>
-      </div>
-
-      <!-- 9. Locais de Interesse -->
-      <div class="col-md-6">
-        <label for="interestPlaces" class="form-label">Locais de Interesse (opcional)</label>
-        <textarea class="form-control input-rounded" id="interestPlaces" name="interest_places" rows="3" placeholder="Ex: Quero conhecer o Museu X, a Praia Y..."></textarea>
-      </div>
-
-      <div class="col-md-12 text-center">
-        <button type="submit" class="btn btn-primary w-50 btn-lg shadow-sm">Gerar Roteiro</button>
-      </div>
-    </form>
-  </div>
-</div>
+  </div> <!-- row -->
+</div> <!-- container-fluid -->
 {% endblock %}

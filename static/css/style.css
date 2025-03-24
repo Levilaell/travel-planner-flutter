@@ -54,3 +54,36 @@ footer {
     background-color: #1F2023;
     color: white;
 }
+
+
+
+
+
+
+
+
+
+body, html {
+    height: 100%;
+    margin: 0;
+  }
+
+  .login-section {
+    background-color: #1a1a1a;
+    color: white;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .image-section {
+    background-image: url('../img/coliseum-purple.jpeg'); /* Substitua pela URL da imagem ou use CSS inline */
+    background-size: cover;
+    background-position: center;
+    height: 100vh;
+  }
+
+  .form-control, .btn {
+    margin-bottom: 15px;
+  }
