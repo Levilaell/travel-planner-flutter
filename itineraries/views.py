@@ -1,18 +1,17 @@
 # views.py
 
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from django.conf import settings
 from datetime import timedelta
 
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404, redirect, render
+
 from .forms import ItineraryForm, ReviewForm
-from .models import Itinerary, Day
-from .services import (
-    generate_itinerary_overview,
-    plan_one_day_itinerary,
-    get_weather_info,
-    get_cordinates_google_geocoding
-)
+from .models import Day, Itinerary
+from .services import (generate_itinerary_overview,
+                       get_cordinates_google_geocoding, get_weather_info,
+                       plan_one_day_itinerary)
+
 
 @login_required
 def create_itinerary_view(request):
