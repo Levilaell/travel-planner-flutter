@@ -1,88 +1,16 @@
 {% extends "base.html" %}
 {% load static %}
+{% load markdownify %}
 
 {% block content %}
-<style>
-  /* ====== Exemplo de estilo baseado em cores dark, similar ao getimg.ai ====== */
-
-  /* Remove espaçamento default do body e define fundo geral escuro */
-  body {
-    background-color: #18181b;
-    color: #ffffff;
-    font-family: 'Montserrat', sans-serif;
-    margin: 0;
-    padding: 0;
-  }
-
-  /* Altura mínima: tela inteira */
-  .full-height-row {
-    min-height: calc(100vh - 60px); /* Ajuste se tiver navbar */
-  }
-
-  /* Painel esquerdo (30%) */
-  .left-panel {
-    background-color: #1f1f23;
-    padding: 20px;
-  }
-
-  /* Painel direito (70%) */
-  .right-panel {
-    background-color: #18181b;
-    padding: 20px;
-    overflow-y: auto;
-  }
-
-  /* Estilizar títulos */
-  .left-panel h2 {
-    color: #ffffff;
-    margin-bottom: 1.5rem;
-  }
-
-  /* Campos de formulário (Bootstrap override) */
-  .left-panel .form-control {
-    background-color: #2c2c2e;
-    color: #ffffff;
-    border: 1px solid #3a3a3c;
-    border-radius: 6px;
-  }
-
-  /* Labels */
-  .left-panel .form-label {
-    color: #e2e2e2;
-    font-weight: 500;
-  }
-
-  /* Checkboxes e radios (textos) */
-  .left-panel .form-check-label {
-    color: #ccc;
-  }
-
-  /* Botão de submissão */
-  .left-panel button.btn-primary {
-    background-color: #4c4c4e;
-    border: none;
-  }
-  .left-panel button.btn-primary:hover {
-    background-color: #5c5c5e;
-  }
-
-  /* Exemplo de estilização do card da IA na direita */
-  .result-card {
-    background-color: #202023;
-    color: #ffffff;
-    border-radius: 8px;
-    padding: 20px;
-  }
-</style>
 
 <div class="container-fluid">
   <div class="row full-height-row">
 
-    <!-- Painel Esquerdo (30%) -->
+    <!-- Painel Esquerdo (30%) - Formulário -->
     <div class="col-md-4 left-panel d-flex align-items-start flex-column">
-      <h2 class="mt-3">Criar Novo Itinerário</h2>
+      <h3 class="mt-3">Criar Novo Itinerário</h3>
 
-      <!-- Exibição de erros (caso existam) -->
       {% if form.errors %}
         <div class="alert alert-danger w-100">
           <ul class="mb-0">
@@ -95,10 +23,9 @@
         </div>
       {% endif %}
 
-      <!-- Formulário em si -->
+      <!-- Formulário -->
       <form method="POST" action="{% url 'create_itinerary' %}" class="w-100">
         {% csrf_token %}
-
         <div class="row g-3">
           <!-- Destino -->
           <div class="col-12">
@@ -157,7 +84,7 @@
             </div>
           </div>
 
-          <!-- Alimentação -->
+          <!-- Preferência de Alimentação -->
           <div class="col-12">
             <label for="foodPreferences" class="form-label">Preferência de Alimentação</label>
             <select class="form-select" id="foodPreferences" name="food_preferences">
@@ -199,33 +126,115 @@
               Gerar Roteiro
             </button>
           </div>
-
         </div>
       </form>
     </div>
 
-    <!-- Painel Direito (70%) - Aqui entra o resultado da IA -->
+    <!-- Painel Direito (70%) -->
     <div class="col-md-8 right-panel">
       {% if itinerary %}
+        <!-- 1) Info geral do itinerário -->
         <div class="result-card mb-3">
-          <h4 class="mb-3">Roteiro Gerado</h4>
-          <p><strong>Destino:</strong> {{ itinerary.destination }}</p>
-          <p><strong>Datas:</strong> {{ itinerary.start_date }} → {{ itinerary.end_date }}</p>
-          <p><strong>Orçamento:</strong> {{ itinerary.budget }}</p>
-          <p><strong>Viajantes:</strong> {{ itinerary.travelers }}</p>
-          <p><strong>Interesses:</strong> {{ itinerary.interests }}</p>
-          <p><strong>Alimentação:</strong> {{ itinerary.food_preferences }}</p>
-          <p><strong>Extras:</strong> {{ itinerary.extras }}</p>
-          <p><strong>Transporte:</strong> {{ itinerary.transport_mode }}</p>
-          <p><strong>Lugares:</strong> {{ itinerary.interest_places }}</p>
-          <hr>
-          <h5>Texto Gerado pela IA:</h5>
-          <div class="bg-dark p-3 rounded" style="white-space: pre-wrap;">
-            {{ itinerary.generated_text }}
+          <h3 class="mb-3">Roteiro Gerado</h3>
+          <p class="fs-1"><strong>Destino:</strong> {{ itinerary.destination }}</p>
+          <p class="fs-1"><strong>Data Inicial:</strong> {{ itinerary.start_date }}</p>
+          <p class="fs-1"><strong>Data Final:</strong> {{ itinerary.end_date }}</p>
+          <p class="fs-1"><strong>Orçamento:</strong> {{ itinerary.budget }}</p>
+          <p class="fs-1"><strong>Viajantes:</strong> {{ itinerary.travelers }}</p>
+          <p class="fs-1"><strong>Interesses:</strong> {{ itinerary.interests }}</p>
+          <p class="fs-1"><strong>Preferências de alimentação:</strong> {{ itinerary.food_preferences }}</p>
+          <p class="fs-1"><strong>Extras:</strong> {{ itinerary.extras }}</p>
+          <p class="fs-1"><strong>Modo de transporte:</strong> {{ itinerary.transport_mode }}</p>
+          <p class="fs-1"><strong>Lugares de interesse:</strong> {{ itinerary.interest_places }}</p>
+        </div>
+
+        <!-- 2) Texto Geral da IA (overview) -->
+        <div class="result-card mb-3">
+          <h4>Texto Geral:</h4>
+          <div class="ai-text montserrat">{{ itinerary.generated_text|markdownify }}
           </div>
         </div>
+
+        <!-- 3) Loop pelos dias do itinerário -->
+        {% for day in days %}
+          <div class="result-card mb-3">
+            <h4>Dia {{ day.day_number }} - {{ day.date|date:"d/m/Y" }}</h4>
+            <div class="ai-text montserrat">{{ day.generated_text|markdownify|safe }}
+            </div>
+          </div>
+        {% endfor %}
+
+        <!-- 4) Mapa (opcional) se tiver lat/lng -->
+        {% if lat and lng %}
+        <div class="result-card mb-3">
+          <h5>Localização no Mapa</h5>
+          <div id="map" style="height:400px;"></div>
+        </div>
+
+        <!-- SCRIPT para exibir vários marcadores -->
+        <script>
+          function initMap() {
+            // Coordenadas do destino (usadas como centro padrão)
+            const centerCoords = { 
+              lat: parseFloat('{{ lat }}'), 
+              lng: parseFloat('{{ lng }}') 
+            };
+            const map = new google.maps.Map(document.getElementById("map"), {
+              zoom: 12,
+              center: centerCoords,
+            });
+
+            // Se existe markers_json, criamos vários marcadores
+            {% if markers_json %}
+              const markersData = JSON.parse('{{ markers_json|safe }}');
+              // Para ajustar o zoom de acordo com todos os pontos
+              const bounds = new google.maps.LatLngBounds();
+
+              markersData.forEach(place => {
+                // Verifica se place.lat e place.lng existem
+                if (place.lat && place.lng) {
+                  // Converter para float
+                  const position = { 
+                    lat: parseFloat(place.lat), 
+                    lng: parseFloat(place.lng) 
+                  };
+                  // Cria marcador
+                  new google.maps.Marker({
+                    position: position,
+                    map: map,
+                    title: place.name || "Local"
+                  });
+                  // Extende o bounds para esse ponto
+                  bounds.extend(position);
+                }
+              });
+
+              // Se tivermos pelo menos 1 lugar na lista, ajusta o mapa
+              if (markersData.length > 0) {
+                map.fitBounds(bounds);
+              }
+            {% else %}
+              // Caso não tenha markers_json, podemos criar somente 1 marcador do destino principal
+              new google.maps.Marker({
+                position: centerCoords,
+                map: map,
+                title: "Destino: {{ itinerary.destination }}"
+              });
+            {% endif %}
+          }
+        </script>
+        <script async
+          src="https://maps.googleapis.com/maps/api/js?key={{ googlemaps_key }}&callback=initMap">
+        </script>
+        {% endif %}
+
+        <!-- 5) Botão voltar -->
+        <a href="{% url 'list_itineraries' %}" class="btn btn-secondary mt-3">
+          Voltar aos meus roteiros
+        </a>
+
       {% else %}
-        <!-- Exemplo: Placeholder se nenhum itinerário foi gerado ainda -->
+        <!-- Se ainda não gerou itinerário -->
         <div class="text-center text-secondary mt-5">
           <h4>Nenhum itinerário ainda...</h4>
           <p>Preencha o formulário à esquerda para gerar um novo roteiro!</p>
@@ -233,6 +242,7 @@
       {% endif %}
     </div>
 
-  </div> <!-- row -->
-</div> <!-- container-fluid -->
+  </div>
+</div>
+
 {% endblock %}

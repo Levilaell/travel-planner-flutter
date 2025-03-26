@@ -1,5 +1,4 @@
-# views.py
-
+import json  # para manipular o JSON de places_visited
 from datetime import timedelta
 
 from django.conf import settings
@@ -21,20 +20,23 @@ def create_itinerary_view(request):
             itinerary = form.save(commit=False)
             itinerary.user = request.user
 
+            # Interesses (checkbox)
             selected_interests = request.POST.getlist('interests_list')
             interests_str = ', '.join(selected_interests)
             itinerary.interests = interests_str
-
             itinerary.save()
 
+            # Coordenadas do destino principal
             lat, lng = get_cordinates_google_geocoding(itinerary.destination)
             itinerary.lat = lat
             itinerary.lng = lng
 
+            # Texto geral/overview da IA
             overview = generate_itinerary_overview(itinerary)
             itinerary.generated_text = overview
             itinerary.save()
 
+            # Gerar Days (um para cada data do intervalo)
             current_date = itinerary.start_date
             day_number = 1
             visited_places_list = []
@@ -54,26 +56,74 @@ def create_itinerary_view(request):
                 day.generated_text = day_text
                 day.save()
 
+                # Acumula lugares já visitados para não repetir
                 visited_places_list.extend(final_places)
                 current_date += timedelta(days=1)
                 day_number += 1
 
-            return redirect('itinerary_detail', pk=itinerary.pk)
+            # Agora, vamos buscar todos os Days do itinerário
+            days = itinerary.days.all().order_by('day_number')
+
+            # =====================================================
+            # 1) Juntar todos os lugares de todos os days numa lista
+            # =====================================================
+            all_markers = []
+            for d in days:
+                if d.places_visited:
+                    try:
+                        # Convertendo a string JSON em uma lista de dicionários
+                        day_places = json.loads(d.places_visited)
+                        for place_dict in day_places:
+                            # place_dict = {"name": "...", "lat": 0.0, "lng": 0.0}
+                            all_markers.append(place_dict)
+                    except json.JSONDecodeError:
+                        pass  # Se der erro de parse, ignore
+
+            # Se quiser também marcar o destino principal:
+            # (opcional)
+            # all_markers.append({
+            #    "name": itinerary.destination,
+            #    "lat": float(itinerary.lat) if itinerary.lat else 0.0,
+            #    "lng": float(itinerary.lng) if itinerary.lng else 0.0
+            # })
+
+            # =====================================================
+            # 2) Transformar em JSON para enviar ao template
+            # =====================================================
+            markers_json = json.dumps(all_markers, ensure_ascii=False)
+
+            # Renderiza a mesma página com o resultado (painel direito)
+            return render(request, 'itineraries/create_itinerary.html', {
+                'form': form,
+                'itinerary': itinerary,
+                'days': days,
+                'lat': itinerary.lat,
+                'lng': itinerary.lng,
+                'markers_json': markers_json,  # AQUI -> Template usará
+                'googlemaps_key': settings.GOOGLEMAPS_KEY,
+            })
         else:
+            # Form inválido
             return render(request, 'itineraries/create_itinerary.html', {'form': form})
+
     else:
+        # GET: Exibe form vazio
         form = ItineraryForm()
         return render(request, 'itineraries/create_itinerary.html', {'form': form})
 
 
 @login_required
 def list_itineraries_view(request):
+    """Lista todos os itinerários do usuário logado."""
     itineraries = Itinerary.objects.filter(user=request.user)
     return render(request, 'itineraries/list_itineraries.html', {'itineraries': itineraries})
 
 
 @login_required
 def itinerary_detail_view(request, pk):
+    """
+    Mostra detalhes de um itinerário específico (incluindo Days).
+    """
     itinerary = get_object_or_404(Itinerary, pk=pk, user=request.user)
     days = itinerary.days.all().order_by('day_number')
     weather_data = get_weather_info(itinerary.destination)
@@ -91,6 +141,7 @@ def itinerary_detail_view(request, pk):
 
 @login_required
 def day_detail_view(request, itinerary_id, day_id):
+    """Exemplo de detalhe de um único dia do itinerário."""
     itinerary = get_object_or_404(Itinerary, pk=itinerary_id, user=request.user)
     day = get_object_or_404(Day, pk=day_id, itinerary=itinerary)
     return render(request, 'itineraries/day_detail.html', {
@@ -101,6 +152,7 @@ def day_detail_view(request, itinerary_id, day_id):
 
 @login_required
 def add_review_view(request, pk):
+    """Exemplo de view para adicionar uma review ao Itinerary."""
     itinerary = get_object_or_404(Itinerary, pk=pk, user=request.user)
     if request.method == 'POST':
         form = ReviewForm(request.POST)

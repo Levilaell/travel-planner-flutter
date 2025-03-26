@@ -1,7 +1,15 @@
-/* Fundo animado com gradiente */
-body {
-    background-size: 200% 200%;
+/* =========================================
+   1) ESTILOS GERAIS E TIPOGRAFIA
+========================================= */
+
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
     font-family: 'Montserrat', sans-serif;
+    background-color: #18181b;  /* Fundo escuro global */
+    color: #ffffff;             /* Texto claro */
+    background-size: 200% 200%; /* Se quiser animar gradiente no futuro */
 }
 
 h1 { font-size: 3.5rem !important; }
@@ -10,9 +18,11 @@ h3 { font-size: 2rem !important; }
 h4 { font-size: 1.5rem !important; }
 h5 { font-size: 1.25rem !important; }
 h6 { font-size: 1rem !important; }
-p { font-size: 1.25rem !important; }
+p  { font-size: 1.25rem !important; }
 
-
+/* =========================================
+   2) NAVBAR E ELEMENTOS DE TOPO
+========================================= */
 nav {
     background-color: #1F2023;
     color: white;
@@ -22,11 +32,30 @@ ul li a, nav a {
     color: white !important;
 }
 
+/* Gradiente no texto do logo "plantrip.ai" */
+.gradient-text {
+    background: linear-gradient(to right, #B557F9, #6865EE);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent; /* Fallback */
+    display: inline-block;
+}
+
+footer {
+    background-color: #1F2023;
+    color: white;
+}
+
+/* =========================================
+   3) SEÇÕES DE BACKGROUND / HOME
+========================================= */
+
 .background {
     background: url('../img/background.jpg') no-repeat center center;
     background-size: cover;
-    width: 100vw; /* Garante que a div ocupe 100% da largura da viewport */
-    height: 100vh; /* Opcional: Se quiser cobrir 100% da altura da tela */
+    width: 100vw;  /* Ocupa 100% da largura */
+    height: 100vh; /* Se quiser cobrir 100% da altura */
 }
 
 .section-1 h1 {
@@ -41,115 +70,124 @@ ul li a, nav a {
     background-color: #5558E5;
 }
 
-.gradient-text {
-    background: linear-gradient(to right, #B557F9, #6865EE);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent; /* Para compatibilidade com alguns navegadores */
-    display: inline-block;
-  }
-
-footer {
-    background-color: #1F2023;
-    color: white;
-}
-
-
-
-
-
-
-/* create_itinerary.html */
-
-
-body, html {
-    height: 100%;
-    margin: 0;
-  }
-
-  .login-section {
+/* =========================================
+   4) ESTILOS DO FORMULÁRIO DE LOGIN
+========================================= */
+.login-section {
     background-color: #1a1a1a;
     color: white;
     padding: 40px;
     display: flex;
     flex-direction: column;
     justify-content: center;
-  }
+}
 
-  .image-section {
-    background-image: url('../img/coliseum-purple.jpeg'); /* Substitua pela URL da imagem ou use CSS inline */
+.image-section {
+    background-image: url('../img/coliseum-purple.jpeg');
     background-size: cover;
     background-position: center;
     height: 100vh;
-  }
+}
 
-  .form-control, .btn {
+.form-control, .btn {
     margin-bottom: 15px;
-  }
+}
 
-/* itinerary_result.html */
+/* =========================================
+   5) ESTILOS ESPECÍFICOS DO create_itinerary.html
+========================================= */
 
-  /* Corpo geral com fundo escuro e fonte Montserrat */
-  body {
-    background-color: #18181b;
-    color: #ffffff;
-    font-family: 'Montserrat', sans-serif;
-    margin: 0;
-    padding: 0;
-  }
-
-  /* Contêiner principal ocupando a altura total menos a navbar, se houver */
-  .full-height-row {
+/* Para ocupar altura total menos a navbar (caso exista) */
+.full-height-row {
     min-height: calc(100vh - 60px);
-  }
+}
 
-  /* Painel principal (equivalente ao .right-panel) */
-  .content-panel {
-    background-color: #18181b;
+/* Painel esquerdo (30%) */
+.left-panel {
+    background-color: #1f1f23; 
+    padding: 20px;
+}
+
+/* Painel direito (70%) */
+.right-panel {
+    background-color: #18181b; 
     padding: 20px;
     overflow-y: auto;
-  }
+}
 
-  /* Cards de resultado */
-  .result-card {
-    background-color: #202023; /* Ou #1f1f23, se preferir */
+/* Labels e inputs do painel esquerdo */
+.left-panel .form-label {
+    color: #e2e2e2;
+    font-weight: 500;
+}
+.left-panel .form-check-label {
+    color: #ccc;
+}
+.left-panel .form-control {
+    background-color: #2c2c2e;
+    color: #ffffff;
+    border: 1px solid #3a3a3c;
+    border-radius: 6px;
+}
+
+/* Botão de submissão do form */
+.left-panel button.btn-primary {
+    background-color: #4c4c4e;
+    border: none;
+}
+.left-panel button.btn-primary:hover {
+    background-color: #5c5c5e;
+}
+
+/* Cartão de resultado (direita) */
+.result-card {
+    background-color: #202023;
     color: #ffffff;
     border-radius: 8px;
     padding: 20px;
-    border: 1px solid #3a3a3c;
     margin-bottom: 20px;
-  }
+    border: 1px solid #3a3a3c;
+}
 
-  .result-card h2, .result-card h4, .result-card h5 {
-    color: #ffffff;
-  }
+/* Exemplo de cor de fundo "extra" (bg-dark) */
+.bg-dark {
+    background-color: #2c2c2e !important;
+}
 
-  /* Texto gerado pela IA */
-  .ai-text {
+/* Texto gerado pela IA */
+.ai-text {
     background-color: #2c2c2e;
     color: #fff;
     padding: 20px;
     border-radius: 6px;
     border: 1px solid #3a3a3c;
-    white-space: pre-wrap; /* Mantém as quebras de linha do texto */
-  }
+    white-space: pre-wrap; 
+}
 
-  /* Botão de voltar (pode reaproveitar estilo do .btn-secondary do create_itinerary.html) */
-  .btn-secondary {
+/* Botão secundário (voltar) */
+.btn-secondary {
     background-color: #4c4c4e;
     border: none;
     color: #fff;
-  }
-  .btn-secondary:hover {
+}
+.btn-secondary:hover {
     background-color: #5c5c5e;
-  }
+}
 
-  /* Mapa */
-  #map {
+/* Mapa */
+#map {
     width: 100%;
     height: 400px;
     border: 1px solid #3a3a3c;
     border-radius: 6px;
     margin-top: 20px;
-  }
+}
+
+/* Ajuste de dropdown do perfil na navbar */
+.navbar .dropdown .btn {
+    display: flex;
+    align-items: center;
+    height: 40px;
+    padding: 0 12px;
+    margin: 0;
+}
