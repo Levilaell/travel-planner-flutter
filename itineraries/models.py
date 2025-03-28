@@ -1,7 +1,8 @@
 # models.py
 
-from django.db import models
 from django.contrib.auth.models import User
+from django.db import models
+
 # Se quiser JSONField nativo (Django 3.1+), você pode usar:
 # from django.db.models import JSONField
 
@@ -17,6 +18,7 @@ class Itinerary(models.Model):
     extras = models.TextField(max_length=200, null=True)
     transport_mode = models.CharField(max_length=20, null=True)
     interest_places = models.TextField(max_length=200, null=True, blank=True)
+    trip_type = models.CharField(max_length=50, null=True, blank=True, default="turismo")
     lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     lng = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     

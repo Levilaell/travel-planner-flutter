@@ -1,0 +1,338 @@
+{# templates/itineraries/dashboard.html #}
+{% extends "base.html" %}
+{% load static %}
+{% load markdownify %}
+
+{% block content %}
+<div class="container-fluid" style="background-color: #2C2C2E">
+  <div class="row full-height-row">
+
+    <!-- Painel Esquerdo (Formulário) -->
+    <div class="col-md-4 left-panel d-flex align-items-start flex-column p-4">
+      <h3 class="text-white">Criar Novo Itinerário</h3>
+
+      <!-- Exibe possíveis erros de formulário -->
+      {% if form.errors %}
+        <div class="alert alert-danger w-100">
+          <ul class="mb-0">
+            {% for field, errors in form.errors.items %}
+              {% for error in errors %}
+                <li><strong>{{ field }}:</strong> {{ error }}</li>
+              {% endfor %}
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      <form method="POST" action="{% url 'dashboard' %}" class="w-100 needs-validation" novalidate>
+        {% csrf_token %}
+        
+        <!-- Grupo: Destino -->
+        <div class="mb-3">
+          <label for="destination" class="form-label">Destino *</label>
+          <input type="text" class="form-control" id="destination"
+                 name="destination"
+                 placeholder="Ex: Natal, Brasil"
+                 required>
+          <div class="form-text">
+            Informe uma cidade/país ou região principal que deseja visitar.
+          </div>
+        </div>
+
+        <!-- Grupo: Datas -->
+        <div class="row g-2 mb-3">
+          <div class="col">
+            <label for="startDate" class="form-label">Data Início *</label>
+            <input type="date" class="form-control" id="startDate"
+                   name="start_date"
+                   required>
+          </div>
+          <div class="col">
+            <label for="endDate" class="form-label">Data Final *</label>
+            <input type="date" class="form-control" id="endDate"
+                   name="end_date"
+                   required>
+          </div>
+        </div>
+
+        <!-- Grupo: Orçamento e Viajantes -->
+        <div class="row g-2 mb-3">
+          <div class="col">
+            <label for="budget" class="form-label">Orçamento (R$) *</label>
+            <input type="number" class="form-control" id="budget"
+                   name="budget" step="0.01"
+                   placeholder="Ex: 2000"
+                   required>
+            <div class="form-text">
+              Valor total estimado para a viagem.
+            </div>
+          </div>
+          <div class="col">
+            <label for="travelers" class="form-label">Nº de Viajantes</label>
+            <input type="number" class="form-control" id="travelers"
+                   name="travelers" min="1" value="1">
+          </div>
+        </div>
+
+        <!-- Grupo: Interesses -->
+        <div class="mb-3">
+          <label class="form-label d-block">Interesses Principais</label>
+          <div class="d-flex flex-wrap gap-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox"
+                     id="interestCultura" name="interests_list"
+                     value="Cultura">
+              <label class="form-check-label" for="interestCultura">Cultura</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox"
+                     id="interestGastronomia" name="interests_list"
+                     value="Gastronomia">
+              <label class="form-check-label" for="interestGastronomia">Gastronomia</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox"
+                     id="interestAventura" name="interests_list"
+                     value="Aventura">
+              <label class="form-check-label" for="interestAventura">Aventura</label>
+            </div>
+            <!-- Você pode adicionar mais checkboxes de interesse aqui -->
+          </div>
+          <div class="form-text">
+            Selecione quantos quiser: cultura, gastronomia, aventura, compras, natureza, etc.
+          </div>
+        </div>
+
+        <!-- Preferências de Alimentação -->
+        <div class="mb-3">
+          <label for="foodPreferences" class="form-label">Alimentação</label>
+          <select class="form-select" id="foodPreferences" name="food_preferences">
+            <option value="nenhuma">Nenhuma Restrição</option>
+            <option value="vegana">Vegana</option>
+            <option value="vegetariana">Vegetariana</option>
+            <option value="kosher">Kosher</option>
+            <option value="halal">Halal</option>
+          </select>
+        </div>
+
+        <!-- Transporte -->
+        <div class="mb-3">
+          <label class="form-label">Modo de Transporte</label>
+          <select class="form-select" name="transport_mode">
+            <option value="driving">Carro</option>
+            <option value="walking">Caminhada</option>
+            <option value="bicycling">Bicicleta</option>
+            <option value="transit">Transp. Público</option>
+          </select>
+        </div>
+
+        <!-- Novo campo: Tipo de Viagem (exemplo) -->
+        <div class="mb-3">
+          <label class="form-label">Tipo de Viagem</label>
+          <select class="form-select" name="trip_type">
+            <option value="turismo">Turismo Clássico</option>
+            <option value="negocios">Negócios</option>
+            <option value="lua_de_mel">Lua de Mel</option>
+            <option value="aventura">Viagem de Aventura</option>
+            <option value="gastronomica">Viagem Gastronômica</option>
+          </select>
+        </div>
+
+        <!-- Locais de Interesse -->
+        <div class="mb-3">
+          <label for="interestPlaces" class="form-label">Locais de Interesse</label>
+          <textarea class="form-control" id="interestPlaces" name="interest_places"
+                    rows="2"
+                    placeholder="Ex: Ponto X, Museu Y, Parque Z"></textarea>
+          <div class="form-text">
+            Se já tiver alguma lista de locais que quer muito visitar, informe aqui.
+          </div>
+        </div>
+
+        <!-- Extras -->
+        <div class="mb-3">
+          <label for="extras" class="form-label">Observações / Extras</label>
+          <textarea class="form-control" id="extras" name="extras"
+                    rows="3"
+                    placeholder="Ex: Acessibilidade, hospedagem 5 estrelas, etc."></textarea>
+        </div>
+
+        <div class="text-center">
+          <button type="submit" class="btn btn-primary w-100 btn-lg shadow-sm">
+            Gerar Roteiro
+          </button>
+        </div>
+      </form>
+    </div>
+    <!-- /Painel Esquerdo -->
+
+    <!-- Painel Direito: lista de itinerarios -->
+    <div class="col-md-8 px-3 right-panel">
+      <h3 class="mb-4 px- pt-3 text-white">Meus Itinerários</h3>
+
+      {% if itineraries %}
+        <div class="row p-3">
+          {% for it in itineraries %}
+            <div class="col-md-6 mb-4">
+              <div class="card h-100 p-3" style="background-color:#2c2c2e;color:#fff;">
+                <div class="card-body">
+                  <h3 class="card-title">{{ it.destination }}</h3>
+                  <p class="card-text">
+                    {{ it.start_date }} → {{ it.end_date }}<br>
+                  </p>
+                  <!-- Botão que abre modal -->
+                  <button class="btn btn-sm btn-outline-light"
+                          data-bs-toggle="modal"
+                          data-bs-target="#modalIt{{ it.id }}">
+                    Ver Detalhes
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- MODAL de Detalhes -->
+            <div class="modal fade" id="modalIt{{ it.id }}" tabindex="-1"
+                 aria-labelledby="modalItLabel{{ it.id }}"
+                 aria-hidden="true">
+              <div class="modal-dialog modal-xl modal-dialog-centered">
+                <div class="modal-content" style="background-color:#202023;color:#fff;">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="modalItLabel{{ it.id }}">
+                      {{ it.destination }} - {{ it.start_date }} → {{ it.end_date }}
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                    <h5>Overview</h5>
+                    <div class="ai-text mb-3">{{ it.generated_text|markdownify }}</div>
+
+                    <h5>Days</h5>
+                    {% for d in it.days.all|dictsort:"day_number" %}
+                      <div class="result-card mb-3">
+                        <div class="ai-text">{{ d.generated_text|markdownify|safe }}
+                        </div>
+                      </div>
+                    {% endfor %}
+
+                    <!-- MAPA -->
+                    <h5>Map</h5>
+                    <div id="map{{ it.id }}"
+                         data-lat="{{ it.lat }}"
+                         data-lng="{{ it.lng }}"
+                         data-markers='{{ it.markers_json|safe }}'
+                         style="height:400px; border:1px solid #3a3a3c; border-radius:6px;">
+                    </div>
+
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-light"
+                            data-bs-dismiss="modal">Fechar</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- FIM MODAL -->
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-white">Nenhum itinerário criado ainda...</p>
+      {% endif %}
+    </div>
+    <!-- /Painel Direito -->
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+
+<!-- Função global: inicializa autocomplete e lógica dos mapas -->
+<script>
+  function initAutocomplete() {
+    // 1) Autocomplete no input de destino
+    const destInput = document.getElementById("destination");
+    if (destInput) {
+      const autocomplete = new google.maps.places.Autocomplete(destInput, {
+        types: ['(cities)'],
+        // Se quiser restringir a um país específico, descomente:
+        // componentRestrictions: { country: "br" },
+      });
+
+      // Exemplo de captura do lugar selecionado
+      autocomplete.addListener('place_changed', function() {
+        const place = autocomplete.getPlace();
+        if (place.geometry) {
+          console.log("Local selecionado:", place.formatted_address);
+          console.log("Lat:", place.geometry.location.lat());
+          console.log("Lng:", place.geometry.location.lng());
+        }
+      });
+    }
+
+    // 2) Inicializa mapas quando os modals são abertos
+    const modals = document.querySelectorAll('.modal.fade');
+    modals.forEach(modal => {
+      modal.addEventListener('shown.bs.modal', (event) => {
+        const modalId = modal.getAttribute('id');   // Ex: "modalIt12"
+        const itineraryId = modalId.replace('modalIt',''); // "12"
+        initMultipleMarkers(itineraryId);
+      });
+    });
+  }
+
+  // Lógica de criar vários marcadores em cada mapa de itinerário
+  function initMultipleMarkers(itineraryId) {
+    const mapDiv = document.getElementById("map" + itineraryId);
+    if (!mapDiv) return;
+  
+    let markersData = [];
+    try {
+      markersData = JSON.parse(mapDiv.dataset.markers);
+    } catch (e) {
+      console.warn("Não foi possível parsear markers JSON p/ itinerário ID=", itineraryId);
+      return;
+    }
+  
+    if (!markersData.length) {
+      console.warn("Nenhum marcador para itinerário ID=", itineraryId);
+      return;
+    }
+  
+    // Cria o mapa centralizado no primeiro marcador
+    const initialCoords = { lat: markersData[0].lat, lng: markersData[0].lng };
+    const map = new google.maps.Map(mapDiv, {
+      zoom: 12,
+      center: initialCoords,
+    });
+  
+    const bounds = new google.maps.LatLngBounds();
+  
+    markersData.forEach(markerObj => {
+      const position = { lat: markerObj.lat, lng: markerObj.lng };
+      new google.maps.Marker({
+        position: position,
+        map: map,
+        title: markerObj.name,
+      });
+      bounds.extend(position);
+    });
+  
+    // Ajusta o mapa se houver mais de 1 marcador
+    if (markersData.length > 1) {
+      map.fitBounds(bounds);
+    } else {
+      map.setCenter(bounds.getCenter());
+      map.setZoom(12);
+    }
+  }
+</script>
+
+<!-- Carrega Google Maps (inclui a biblioteca "places" e chama initAutocomplete no callback) -->
+<script
+  src="https://maps.googleapis.com/maps/api/js?key={{ googlemaps_key }}&libraries=places&callback=initAutocomplete"
+  async
+  defer>
+</script>
+{% endblock %}

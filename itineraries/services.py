@@ -1,10 +1,11 @@
 # services.py
 
-import os
 import json
+import os
+from datetime import datetime
+
 import openai
 import requests
-from datetime import datetime
 from django.conf import settings
 from dotenv import load_dotenv
 
@@ -30,16 +31,28 @@ Extras: {itinerary.extras}
 Modo de Transporte: {itinerary.transport_mode}
 Locais de Interesse: {itinerary.interest_places}
 
-A resposta deve ser um texto breve em português, destacando:
-- Características gerais do destino
-- Dicas iniciais
-- Tom amigável
+A resposta deve ser no seguinte padrão:
+
+Viagem a Paris - Visão Geral
+
+Bonjour! Prepare-se para uma viagem encantadora à Cidade Luz, Paris, em 25 de março de 2025. Esta cidade, conhecida por sua rica história, arquitetura deslumbrante e cultura vibrante, certamente proporcionará uma experiência inesquecível.
+
+Características Gerais do Destino:
+Paris é famosa por seus icônicos pontos turísticos, como a Torre Eiffel, o Museu do Louvre e a Catedral de Notre-Dame. A cidade oferece uma mistura de arte, moda e gastronomia, com charmosos cafés e boulangeries a cada esquina. Na primavera, Paris floresce com uma beleza especial, tornando seus parques e jardins ainda mais encantadores para passeios relaxantes.
+
+Com apenas um dia, faça uma lista dos locais principais que deseja visitar e organize seu tempo para aproveitar ao máximo. Considere começar cedo para evitar multidões.
+
+Embora Paris seja uma cidade caminhável, usar transporte público ou dirigir pode ser útil para cobrir mais locais em menos tempo. Lembre-se de planejar rotas de estacionamento, pois a cidade pode ser desafiadora para motoristas.
+
+Com um orçamento de 2000, você terá flexibilidade para desfrutar de algumas das melhores experiências gastronômicas e culturais que Paris oferece. Considere reservar ingressos para atrações com antecedência para economizar tempo e dinheiro.
+
+Esperamos que você tenha uma viagem maravilhosa, cheia de descobertas e momentos inesquecíveis. Aproveite cada instante e absorva toda a beleza e charme que Paris tem a oferecer. Bon voyage!
 """
     response = openai.ChatCompletion.create(
-        model="gpt-4o",
+        model="gpt-4o-mini",
         messages=[{"role": "user", "content": prompt}],
-        max_tokens=4000,
-        temperature=0.7
+        max_tokens=6000,
+        temperature=0.8
     )
     return response.choices[0].message["content"]
 
@@ -74,10 +87,10 @@ Apenas retorne a lista, sem texto adicional.
 """
 
     response = openai.ChatCompletion.create(
-        model="gpt-4o",
+        model="gpt-4o-mini",
         messages=[{"role": "user", "content": prompt}],
-        max_tokens=4000,
-        temperature=0.7
+        max_tokens=6000,
+        temperature=0.8
     )
 
     content = response.choices[0].message["content"]
@@ -145,7 +158,7 @@ def build_distance_matrix(locations):
             distance_matrix.append(distances_row)
         return distance_matrix
     except:
-        return None
+        return None 
 
 
 #############################
@@ -214,7 +227,7 @@ Gere um roteiro detalhado para o dia, no formato abaixo:
 Agora, para cada local abaixo (nesta ordem!), crie um bloco com:
 - Horário (ex: 7h30 – Café da Manhã ...)
 - Marcador '📍' + endereço (ex: '📍 Boulangerie X, 8 Rue ...')
-- Pequeno texto explicativo.
+- Texto completo explicativo, falando sobre o lugar, o que fazer e tudo mais.
 
 Ordem de Locais a Visitar (não alterar!):
 """
@@ -228,10 +241,10 @@ Responda em português e mantenha um tom amigável.
 """
 
     response = openai.ChatCompletion.create(
-        model="gpt-4o",
+        model="gpt-4o-mini",
         messages=[{"role": "user", "content": prompt}],
-        max_tokens=4000,
-        temperature=0.7
+        max_tokens=6000,
+        temperature=0.8
     )
 
     return response.choices[0].message["content"]
