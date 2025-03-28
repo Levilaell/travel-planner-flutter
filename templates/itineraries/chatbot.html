@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container py-4">
+  <h2 class="mb-3 text-white">Chat com Robert</h2>
+
+  <div id="chat-box" style="max-height: 400px; overflow-y: auto; border:1px solid #777; padding:10px; margin-bottom:20px;">
+    <!-- Mensagens serão injetadas via JS -->
+  </div>
+
+  <div class="input-group">
+    <input type="text" id="user-input" class="form-control" placeholder="Digite sua mensagem..." aria-label="Mensagem do usuário">
+    <button class="btn btn-primary" type="button" id="send-btn">Enviar</button>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  const sendBtn = document.getElementById("send-btn");
+  const userInput = document.getElementById("user-input");
+  const chatBox = document.getElementById("chat-box");
+
+  function appendMessage(role, content) {
+    const msgDiv = document.createElement("div");
+    msgDiv.classList.add("mb-2", "p-2");
+    if (role === "user") {
+      msgDiv.style.backgroundColor = "#4c4c4e";
+      msgDiv.style.textAlign = "right";
+      msgDiv.innerHTML = "<strong>Você:</strong> " + content;
+    } else {
+      // assistant
+      msgDiv.style.backgroundColor = "#2c2c2e";
+      msgDiv.innerHTML = "<strong>Robert:</strong> " + content;
+    }
+    chatBox.appendChild(msgDiv);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  sendBtn.addEventListener("click", () => {
+    const message = userInput.value.trim();
+    if (!message) return;
+    appendMessage("user", message);
+    userInput.value = "";
+
+    // Envia via POST AJAX
+    const csrfToken = getCookie('csrftoken');
+    fetch("{% url 'chatbot_view' %}", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-CSRFToken": csrfToken
+      },
+      body: new URLSearchParams({
+        "message": message
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      // data.reply = resposta do servidor
+      appendMessage("assistant", data.reply);
+    })
+    .catch(err => {
+      console.error(err);
+      appendMessage("assistant", "Ops, ocorreu um erro.");
+    });
+  });
+
+  // Helper para pegar CSRF
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+</script>
+{% endblock %}

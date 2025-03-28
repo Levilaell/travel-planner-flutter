@@ -1,15 +1,11 @@
+# urls.py
+
 from django.urls import path
 
-from . import views
+from . import chatbot_views, views
 
 urlpatterns = [
-    path('create/', views.dashboard_view, name='dashboard'),
-    #path('list/', views.list_itineraries_view, name='list_itineraries'),
-    
-    # Detalhes do itinerário
-    #path('<int:pk>/', views.itinerary_detail_view, name='itinerary_detail'),
-    
-    
-    # Detalhes de um dia específico (Day) dentro do itinerário
-    #path('<int:itinerary_id>/day/<int:day_id>/', views.day_detail_view, name='day_detail'),
+    path('dashboard/', views.dashboard_view, name='dashboard'),
+    path('chat/', chatbot_views.chatbot_view, name='chatbot_view'),
+    # ... outras rotas ...
 ]
