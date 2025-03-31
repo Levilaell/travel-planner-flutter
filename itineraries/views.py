@@ -4,12 +4,15 @@ import json
 from datetime import timedelta
 
 from django.conf import settings
-from django.contrib.auth.decorators import login_required # type: ignore
+from django.contrib.auth.decorators import login_required  # type: ignore
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse  # ADICIONADO para usar reverse em redirect
 
 from .forms import ItineraryForm, ReviewForm
 from .models import Day, Itinerary
-from .services import (generate_itinerary_overview,
+from .services import replace_single_place_in_day  # ADICIONADO
+from .services import (build_markers_json_for_day_replacement,
+                       generate_itinerary_overview,
                        get_cordinates_google_geocoding, plan_one_day_itinerary)
 
 
@@ -25,7 +28,6 @@ def dashboard_view(request):
         form = ItineraryForm(request.POST)
         if form.is_valid():
             # 1) Criar itinerário
-
             itinerary = form.save(commit=False)
             itinerary.user = request.user
 
@@ -66,8 +68,8 @@ def dashboard_view(request):
                 current_date += timedelta(days=1)
                 day_number += 1
 
-            # Evitar reenvio do form ao dar F5
-            return redirect('dashboard')
+            # Redireciona e já passa ID p/ abrir modal automaticamente
+            return redirect(f"{reverse('dashboard')}?new_itinerary_id={itinerary.id}")
         else:
             # Form inválido => exibir erros
             itineraries = Itinerary.objects.filter(user=request.user).order_by('-created_at')
@@ -90,10 +92,14 @@ def dashboard_view(request):
         for it in itineraries:
             it.markers_json = build_markers_json(it)
 
+        # Se vier new_itinerary_id na query, passamos p/ template
+        new_itinerary_id = request.GET.get('new_itinerary_id', '')
+
         return render(request, 'itineraries/dashboard.html', {
             'form': form,
             'itineraries': itineraries,
             'googlemaps_key': settings.GOOGLEMAPS_KEY,
+            'new_itinerary_id': new_itinerary_id,  # ADICIONADO
         })
 
 
@@ -116,7 +122,9 @@ def build_markers_json(itinerary):
     for d in days:
         if d.places_visited:
             try:
-                day_places = json.loads(d.places_visited)  # ex: [ {name,lat,lng}, ...]
+                # Mantemos a leitura mas não usamos json.loads() externamente;
+                # só criamos a string final (o python precisará interpretar em build_markers_json).
+                day_places = json.loads(d.places_visited)  # Necessário para unir no array final
                 all_markers.extend(day_places)
             except json.JSONDecodeError:
                 pass
@@ -129,6 +137,7 @@ def add_review_view(request, pk):
     """
     Exemplo se quiser adicionar reviews
     """
+    from .models import Itinerary
     itinerary = get_object_or_404(Itinerary, pk=pk, user=request.user)
     if request.method == 'POST':
         form = ReviewForm(request.POST)
@@ -141,3 +150,33 @@ def add_review_view(request, pk):
     else:
         form = ReviewForm()
     return render(request, 'itineraries/add_review.html', {'form': form, 'itinerary': itinerary})
+
+
+# ADICIONADO: nova view para trocar um lugar específico
+@login_required
+def replace_place_view(request):
+    """
+    Substitui um lugar de um Day específico por outro,
+    mantendo o restante. Usa o context existente do dia.
+    """
+    if request.method == 'POST':
+        day_id = request.POST.get('day_id')
+        place_index = request.POST.get('place_index')
+        observation = request.POST.get('observation', '')
+
+        day = get_object_or_404(Day, pk=day_id, itinerary__user=request.user)
+        itinerary = day.itinerary
+
+        # Chama serviço para trocar UM local
+        replace_single_place_in_day(day, place_index, observation)
+
+        # Reconstruir markers para esse itinerário
+        # (para mapear do zero e atualizar o modal)
+        itinerary.lat = itinerary.lat or 0.0
+        itinerary.lng = itinerary.lng or 0.0
+        # Recalcular markers
+        # ...
+        return redirect(f"{reverse('dashboard')}?new_itinerary_id={itinerary.id}")
+
+    # Se não for POST, só redireciona
+    return redirect('dashboard')

@@ -211,8 +211,48 @@
                     <h5>Days</h5>
                     {% for d in it.days.all|dictsort:"day_number" %}
                       <div class="result-card mb-3">
-                        <div class="ai-text">{{ d.generated_text|markdownify|safe }}
+                        <div class="ai-text">
+                          {{ d.generated_text|markdownify|safe }}
                         </div>
+
+                        <!-- LISTA DE LUGARES (TROCA) -->
+                        {% if d.places_visited %}
+                          <div class="mt-3">
+                            <strong>Lugares (Editar individualmente):</strong>
+                            <div id="day-places-{{d.id}}"></div>
+                            <script>
+                              (function(){
+                                var container = document.getElementById("day-places-{{d.id}}");
+                                var rawData = `{{ d.places_visited|safe }}`; // sem json.loads, apenas string
+                                try {
+                                  // Tentar converter via JS
+                                  var placesArr = JSON.parse(rawData);
+                                  if(Array.isArray(placesArr)){
+                                    var html = "";
+                                    placesArr.forEach(function(p, idx){
+                                      var placeName = p.name || "Local desconhecido";
+                                      // Botão de troca ♻️
+                                      html += `
+                                        <div class="mt-2">
+                                          ${idx+1}. ${placeName}
+                                          <button class="btn btn-sm btn-link text-warning replace-place-btn"
+                                                  data-dayid="{{d.id}}"
+                                                  data-index="${idx}"
+                                                  data-bs-toggle="modal"
+                                                  data-bs-target="#replaceModal"
+                                                  title="Trocar local">
+                                            ♻️
+                                          </button>
+                                        </div>
+                                      `;
+                                    });
+                                    container.innerHTML = html;
+                                  }
+                                } catch(e){}
+                              })();
+                            </script>
+                          </div>
+                        {% endif %}
                       </div>
                     {% endfor %}
 
@@ -244,6 +284,38 @@
 
   </div>
 </div>
+
+<!-- MODAL PARA TROCA DE LUGAR ESPECÍFICO -->
+<div class="modal fade" id="replaceModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered" style="color:#fff;">
+    <div class="modal-content" style="background-color:#202023;">
+      <div class="modal-header">
+        <h5 class="modal-title">Trocar Lugar</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" action="{% url 'replace_place' %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <input type="hidden" id="replaceDayId" name="day_id" value="">
+          <input type="hidden" id="replaceIndex" name="place_index" value="">
+          <div class="mb-3">
+            <label for="replaceObservation" class="form-label">Observação / Preferência para o novo local</label>
+            <textarea class="form-control" id="replaceObservation" name="observation"
+                      rows="3"
+                      placeholder="Ex: Quero algo mais central, sem repetir lugares ou com comida típica"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Confirmar Troca</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<!-- FIM MODAL TROCA -->
+
+
 {% endblock %}
 
 {% block extra_scripts %}
@@ -256,7 +328,6 @@
     if (destInput) {
       const autocomplete = new google.maps.places.Autocomplete(destInput, {
         types: ['(cities)'],
-        // Se quiser restringir a um país específico, descomente:
         // componentRestrictions: { country: "br" },
       });
 
@@ -275,9 +346,11 @@
     const modals = document.querySelectorAll('.modal.fade');
     modals.forEach(modal => {
       modal.addEventListener('shown.bs.modal', (event) => {
-        const modalId = modal.getAttribute('id');   // Ex: "modalIt12"
-        const itineraryId = modalId.replace('modalIt',''); // "12"
-        initMultipleMarkers(itineraryId);
+        const modalId = modal.getAttribute('id');   // Ex: "modalIt12" ou "replaceModal"
+        if(modalId && modalId.startsWith("modalIt")){
+          const itineraryId = modalId.replace('modalIt',''); // "12"
+          initMultipleMarkers(itineraryId);
+        }
       });
     });
   }
@@ -327,6 +400,30 @@
       map.setZoom(12);
     }
   }
+
+  // Abre automaticamente o modal do último roteiro criado (se houver)
+  document.addEventListener("DOMContentLoaded", function(){
+    var autoOpenId = "{{ new_itinerary_id|default:'' }}";
+    if(autoOpenId){
+      var modalEl = document.getElementById("modalIt" + autoOpenId);
+      if(modalEl){
+        var bsModal = new bootstrap.Modal(modalEl, {});
+        bsModal.show();
+      }
+    }
+
+    // Ao clicar no botão ♻️ de qualquer lugar, preenche os hidden fields e abre modal de troca
+    document.body.addEventListener("click", function(e){
+      if(e.target && e.target.classList.contains("replace-place-btn")){
+        var dayId = e.target.getAttribute("data-dayid");
+        var placeIndex = e.target.getAttribute("data-index");
+        document.getElementById("replaceDayId").value = dayId;
+        document.getElementById("replaceIndex").value = placeIndex;
+        // Observation é um textarea -> limpo a cada clique
+        document.getElementById("replaceObservation").value = "";
+      }
+    });
+  });
 </script>
 
 <!-- Carrega Google Maps (inclui a biblioteca "places" e chama initAutocomplete no callback) -->

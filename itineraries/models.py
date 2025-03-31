@@ -1,7 +1,8 @@
 # models.py
 
-from django.contrib.auth.models import User # type: ignore
-from django.db import models # type: ignore
+from django.contrib.auth.models import User  # type: ignore
+from django.db import models  # type: ignore
+
 
 class Itinerary(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

@@ -95,6 +95,7 @@ Apenas retorne a lista, sem texto adicional.
 
     content = response.choices[0].message["content"]
     try:
+        # Aqui, como está no Python, precisamos interpretar a resposta
         places_list = json.loads(content)
         places_list = [p.strip() for p in places_list if isinstance(p, str)]
         return places_list
@@ -158,7 +159,7 @@ def build_distance_matrix(locations):
             distance_matrix.append(distances_row)
         return distance_matrix
     except:
-        return None 
+        return None
 
 
 #############################
@@ -309,7 +310,7 @@ def plan_one_day_itinerary(itinerary, day, already_visited=None):
         already_visited = []
 
     # -------------------------------------------
-    # 1) Tentar Sugerir lugares (GPT) até 3 vezes
+    # 1) Tentar Sugerir lugares (GPT) até 5 vezes
     # -------------------------------------------
     max_attempts = 5
     raw_places = []
@@ -317,7 +318,7 @@ def plan_one_day_itinerary(itinerary, day, already_visited=None):
         raw_places = suggest_places_gpt(itinerary, day.day_number, already_visited)
         if raw_places:  # Se não for vazio, ok
             break
-    # Se depois de 3 tentativas ainda vazio, cancelamos
+
     if not raw_places:
         return ("Não foi possível encontrar locais para este dia após 5 tentativas.", [])
 
@@ -366,11 +367,12 @@ def plan_one_day_itinerary(itinerary, day, already_visited=None):
     final_place_names = [loc["name"] for loc in route_ordered]
 
     # SALVA a lista de lugares (com lat/lng) no campo places_visited do Day (JSON serializado)
-    import json
     day.places_visited = json.dumps(route_ordered, ensure_ascii=False)
-    day.save(update_fields=["places_visited"])
+    day.generated_text = verified_text
+    day.save(update_fields=["places_visited", "generated_text"])
 
     return (verified_text, final_place_names)
+
 
 #############################
 # 9) Outras utilidades
@@ -409,3 +411,145 @@ def get_cordinates_google_geocoding(address):
     except (requests.RequestException, IndexError, KeyError):
         pass
     return None, None
+
+
+################################################
+# NOVAS FUNÇÕES PARA TROCAR UM LUGAR ESPECÍFICO
+################################################
+
+def build_markers_json_for_day_replacement(day):
+    """
+    Recria markers com base nos lugares do day.
+    """
+    all_markers = []
+    try:
+        if day.places_visited:
+            places = json.loads(day.places_visited)
+            all_markers.extend(places)
+    except:
+        pass
+    return json.dumps(all_markers, ensure_ascii=False)
+
+
+def replace_single_place_in_day(day, place_index, user_observation):
+    """
+    Tenta substituir somente UM local do day por outro,
+    mantendo todo o resto.
+    - Evita duplicar ou repetir lugares (considerando days anteriores e o dia atual).
+    - Faz nova chamada GPT p/ 1 sugestão, considerando a observation do usuário.
+    - Atualiza places_visited e re-regenera day.generated_text no final.
+    """
+    itinerary = day.itinerary
+    # 1) Já visitados: todos os dias anteriores + todos do dia atual (exceto o place a remover)
+    all_days = itinerary.days.all().order_by('day_number')
+    visited_set = set()
+
+    for d in all_days:
+        if not d.places_visited:
+            continue
+        try:
+            arr = json.loads(d.places_visited)
+            for i, pl in enumerate(arr):
+                # Se for o dia e o index que vamos remover, não conta como visited
+                if d.id == day.id and i == int(place_index):
+                    continue
+                visited_set.add(pl["name"].lower())
+        except:
+            pass
+
+    # remove do day
+    current_places = []
+    try:
+        current_places = json.loads(day.places_visited)
+    except:
+        current_places = []
+    if int(place_index) < len(current_places):
+        current_places.pop(int(place_index))
+
+    # 2) Chamar GPT para sugerir UM único lugar substituto
+    new_place_name = suggest_one_new_place_gpt(itinerary, day, visited_set, user_observation)
+    if not new_place_name:
+        # Caso não consiga, nada é alterado
+        # (poderíamos inserir "Local indisponível" mas deixamos vazio)
+        pass
+    else:
+        # Obter lat/lng
+        reference_location = f"{itinerary.lat},{itinerary.lng}" if itinerary.lat and itinerary.lng else "48.8566,2.3522"
+        latlng = get_place_coordinates(new_place_name, reference_location=reference_location)
+        if latlng[0] is not None:
+            current_places.insert(int(place_index), {
+                "name": new_place_name,
+                "lat": latlng[0],
+                "lng": latlng[1]
+            })
+        else:
+            # Não conseguiu achar lat/lng: reinserir mesmo assim, mas sem coords
+            current_places.insert(int(place_index), {
+                "name": new_place_name,
+                "lat": None,
+                "lng": None
+            })
+
+    # 3) Re-gerar o texto do dia
+    # Montar route_ordered com base na ordem atual (não mexemos nas posições)
+    route_ordered = current_places
+
+    weather_data = get_weather_info(itinerary.destination)
+    raw_day_text = generate_day_text_gpt(itinerary, day, route_ordered, weather_info=weather_data)
+    verified_text = verify_and_update_places(raw_day_text, itinerary.lat, itinerary.lng)
+
+    # 4) Persistir
+    day.places_visited = json.dumps(route_ordered, ensure_ascii=False)
+    day.generated_text = verified_text
+    day.save(update_fields=["places_visited", "generated_text"])
+
+
+def suggest_one_new_place_gpt(itinerary, day, visited_set, user_observation):
+    """
+    Chama GPT para sugerir apenas 1 local substituto,
+    evitando repetição de 'visited_set'.
+    """
+    visited_str = ", ".join(list(visited_set)) if visited_set else "Nenhum"
+    day_number = day.day_number
+
+    # Prompt adicional. Não estamos alterando os prompts anteriores;
+    # apenas adicionamos este para a troca de lugar.
+    prompt = f"""
+Você é um planejador de viagens especializado em {itinerary.destination}.
+Preciso substituir um único local que não agradou.
+Aqui estão detalhes:
+
+Dia da viagem: {day_number}
+Interesses: {itinerary.interests}
+Preferências Alimentares: {itinerary.food_preferences}
+Orçamento: {itinerary.budget}
+Viajantes: {itinerary.travelers}
+Locais já visitados (não repetir): {visited_str}
+
+Observação do usuário sobre o novo local: {user_observation}
+
+Sugira APENAS UM lugar (apenas o nome, sem explicação), que seja coerente com esse contexto.
+Responda apenas com o nome do lugar, sem texto adicional.
+
+Padrão de resposta para cada lugar:
+
+1. Praia de Ponta Negra
+
+🕖 8h00 – Café da Manhã
+📍 Ponta Negra, Natal - RN
+(endereço verificado: Ponta Negra, Natal - State of Rio Grande do Norte, Brazil)
+Comece o dia com um delicioso café da manhã em um dos quiosques à beira-mar da Praia de Ponta Negra. Saboreie um prato típico da região, como o famoso bolo de rolo ou uma tapioca recheada. Depois, aproveite para caminhar pela praia e admirar o famoso Morro do Careca, um dos cartões-postais da cidade. O clima agradável torna a praia um lugar perfeito para relaxar e sentir a brisa do mar.
+"""
+
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=6000,
+            temperature=0.8
+        )
+        content = response.choices[0].message["content"].strip()
+        # Retorna só a string
+        return content
+    except:
+        return ""
