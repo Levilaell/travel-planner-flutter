@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy # type: ignore
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -44,7 +44,7 @@ AUTHENTICATION_BACKENDS = (
     'allauth.account.auth_backends.AuthenticationBackend',
 )
 
-LOGIN_REDIRECT_URL = reverse_lazy('create_itinerary')
+LOGIN_REDIRECT_URL = reverse_lazy('dashboard')
 LOGOUT_REDIRECT_URL = '/'
 SOCIALACCOUNT_ADAPTER = 'allauth.socialaccount.adapter.DefaultSocialAccountAdapter'
 SOCIALACCOUNT_AUTO_SIGNUP = True

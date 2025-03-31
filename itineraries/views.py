@@ -1,8 +1,10 @@
+# views.py
+
 import json
 from datetime import timedelta
 
 from django.conf import settings
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required # type: ignore
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import ItineraryForm, ReviewForm
@@ -23,6 +25,7 @@ def dashboard_view(request):
         form = ItineraryForm(request.POST)
         if form.is_valid():
             # 1) Criar itinerário
+
             itinerary = form.save(commit=False)
             itinerary.user = request.user
 

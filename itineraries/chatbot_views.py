@@ -6,8 +6,8 @@ from datetime import timedelta
 
 import openai
 from django.conf import settings
-from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required # type: ignore
+from django.http import JsonResponse # type: ignore
 from django.shortcuts import redirect, render
 
 from .forms import ItineraryForm
