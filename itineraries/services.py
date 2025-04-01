@@ -230,6 +230,15 @@ Agora, para cada local abaixo (nesta ordem!), crie um bloco com:
 - Marcador '📍' + endereço (ex: '📍 Boulangerie X, 8 Rue ...')
 - Texto completo explicativo, falando sobre o lugar, o que fazer e tudo mais.
 
+Padrão de resposta:
+
+7h30 – Café da Manhã
+
+📍 Boulangerie Poilâne, 8 Rue du Cherche-Midi
+(endereço verificado: 8 Rue du Cherche-Midi, 75006 Paris, France)
+Comece o seu dia em Paris com um delicioso café da manhã na famosa Boulangerie Poilâne. Experimente um croissant fresco ou uma fatia de pão de centeio, acompanhado por um café expresso. Este local é conhecido por suas receitas tradicionais e ingredientes de alta qualidade, tornando-se uma excelente escolha para se energizar antes de um dia cheio de turismo.
+
+
 Ordem de Locais a Visitar (não alterar!):
 """
 
@@ -414,7 +423,7 @@ def get_cordinates_google_geocoding(address):
 
 
 ################################################
-# NOVAS FUNÇÕES PARA TROCAR UM LUGAR ESPECÍFICO
+# 10) Trocar um lugar específico
 ################################################
 
 def build_markers_json_for_day_replacement(day):
@@ -533,12 +542,11 @@ Responda apenas com o nome do lugar, sem texto adicional.
 
 Padrão de resposta para cada lugar:
 
-1. Praia de Ponta Negra
+7h30 – Café da Manhã
 
-🕖 8h00 – Café da Manhã
-📍 Ponta Negra, Natal - RN
-(endereço verificado: Ponta Negra, Natal - State of Rio Grande do Norte, Brazil)
-Comece o dia com um delicioso café da manhã em um dos quiosques à beira-mar da Praia de Ponta Negra. Saboreie um prato típico da região, como o famoso bolo de rolo ou uma tapioca recheada. Depois, aproveite para caminhar pela praia e admirar o famoso Morro do Careca, um dos cartões-postais da cidade. O clima agradável torna a praia um lugar perfeito para relaxar e sentir a brisa do mar.
+📍 Boulangerie Poilâne, 8 Rue du Cherche-Midi
+(endereço verificado: 8 Rue du Cherche-Midi, 75006 Paris, France)
+Comece o seu dia em Paris com um delicioso café da manhã na famosa Boulangerie Poilâne. Experimente um croissant fresco ou uma fatia de pão de centeio, acompanhado por um café expresso. Este local é conhecido por suas receitas tradicionais e ingredientes de alta qualidade, tornando-se uma excelente escolha para se energizar antes de um dia cheio de turismo.
 """
 
     try:

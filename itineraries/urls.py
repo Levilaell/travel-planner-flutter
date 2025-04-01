@@ -1,6 +1,6 @@
 # urls.py
 
-from django.urls import path  # type: ignore
+from django.urls import path
 
 from . import chatbot_views, views
 
@@ -13,4 +13,8 @@ urlpatterns = [
 
     # Exemplo de review
     path('add-review/<int:pk>/', views.add_review_view, name='add_review'),
+
+    # NOVAS ROTAS:
+    path('delete-itinerary/<int:pk>/', views.delete_itinerary_view, name='delete_itinerary'),
+    path('export-pdf/<int:pk>/', views.export_itinerary_pdf_view, name='export_itinerary_pdf'),
 ]

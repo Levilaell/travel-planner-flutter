@@ -1,5 +1,3 @@
-# views.py
-
 import json
 from datetime import timedelta
 
