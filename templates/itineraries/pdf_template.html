@@ -1,8 +1,5 @@
-{# templates/itineraries/pdf_template.html #}
-
 {% load static %}
 {% load filters %}
-
 
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -45,11 +42,11 @@
       height: auto;
     }
     .text-block {
-        white-space: pre-line;
-        font-size: 15px;
-        line-height: 1.6;
-        margin-top: 1em;
-      }
+      white-space: pre-line;
+      font-size: 15px;
+      line-height: 1.6;
+      margin-top: 1em;
+    }
   </style>
 </head>
 <body>
@@ -66,9 +63,6 @@
 
     <h3>Resumo Geral</h3>
     <div class="text-block">{{ itinerary.generated_text|strip_markdown|safe }}</div>
-
-
-
   </div>
 
   {% for d in itinerary.days.all|dictsort:"day_number" %}
@@ -77,19 +71,13 @@
       <div class="text-block">
         {{ d.generated_text|strip_markdown|safe }}
       </div>
-
-
-
     </div>
   {% endfor %}
 
-  {# Exemplo de exibição de mapa estático do Google (centrado no destino): #}
-  {% if map_img_path %}
+  {% if map_img_b64 %}
     <h3>🗺️ Mapa Geral</h3>
-    <img class="map-img" src="{{ map_img_path }}" alt="Mapa Estático">
+    <img class="map-img" src="{{ map_img_b64 }}" alt="Mapa Estático">
   {% endif %}
-
-
 
 </body>
 </html>
