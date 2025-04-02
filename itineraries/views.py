@@ -163,14 +163,13 @@ def delete_itinerary_view(request, pk):
 @login_required
 def export_itinerary_pdf_view(request, pk):
     """
-    Gera um PDF do itinerário selecionado, incluindo dados gerais,
-    dias e lugares. Também inclui uma imagem de mapa salva localmente.
+    Gera um PDF do itinerário, incluindo imagem de mapa salva localmente.
     """
     itinerary = get_object_or_404(Itinerary, pk=pk, user=request.user)
 
     map_img_path = None
+    temp_file_path = None
 
-    # Gera a URL do mapa estático do Google
     if itinerary.lat and itinerary.lng:
         map_url = (
             f"https://maps.googleapis.com/maps/api/staticmap"
@@ -180,33 +179,33 @@ def export_itinerary_pdf_view(request, pk):
             f"&key={settings.GOOGLEMAPS_KEY}"
         )
 
-        # Baixa a imagem do mapa
         try:
             response = requests.get(map_url)
             if response.status_code == 200:
                 temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
                 temp_file.write(response.content)
                 temp_file.close()
-                map_img_path = temp_file.name
-        except:
-            map_img_path = None
 
-    # Renderiza o HTML com o caminho local da imagem
+                # Importante: usar "file://" + caminho
+                map_img_path = f"file://{temp_file.name}"
+                temp_file_path = temp_file.name
+        except Exception as e:
+            print("Erro ao baixar imagem do mapa:", e)
+
+    # Renderiza HTML com caminho local da imagem
     html_string = render_to_string('itineraries/pdf_template.html', {
         'itinerary': itinerary,
         'map_img_path': map_img_path,
     })
 
-    # Gera o PDF
-    pdf_file = HTML(string=html_string).write_pdf()
+    # Gera o PDF usando o caminho base do sistema de arquivos
+    pdf_file = HTML(string=html_string, base_url=os.getcwd()).write_pdf()
 
-    # Apaga o arquivo temporário depois de gerar o PDF
-    if map_img_path and os.path.exists(map_img_path):
-        os.remove(map_img_path)
+    # Remove imagem temporária após gerar PDF
+    if temp_file_path and os.path.exists(temp_file_path):
+        os.remove(temp_file_path)
 
-    # Retorna o PDF como resposta para download
     response = HttpResponse(pdf_file, content_type='application/pdf')
     filename = f"Itinerario_{itinerary.destination}.pdf"
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
-
     return response

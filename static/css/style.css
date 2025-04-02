@@ -3,7 +3,8 @@
    apenas incluímos comentários para referência)
 ========================================= */
 
-html, body {
+html,
+body {
     margin: 0;
     padding: 0;
     height: 100%;
@@ -13,20 +14,41 @@ html, body {
     background-size: 200% 200%;
 }
 
-h1 { font-size: 3.5rem !important; }
-h2 { font-size: 2.5rem !important; }
-h3 { font-size: 2rem !important; }
-h4 { font-size: 1.5rem !important; }
-h5 { font-size: 1.25rem !important; }
-h6 { font-size: 1rem !important; }
-p  { font-size: 1.25rem !important; }
+h1 {
+    font-size: 3.5rem !important;
+}
+
+h2 {
+    font-size: 2.5rem !important;
+}
+
+h3 {
+    font-size: 2rem !important;
+}
+
+h4 {
+    font-size: 1.5rem !important;
+}
+
+h5 {
+    font-size: 1.25rem !important;
+}
+
+h6 {
+    font-size: 1rem !important;
+}
+
+p {
+    font-size: 1.25rem !important;
+}
 
 nav {
     background-color: #18181B;
     color: white;
 }
 
-ul li a, nav a {
+ul li a,
+nav a {
     color: white !important;
 }
 
@@ -50,12 +72,15 @@ footer {
     width: 100vw;
     height: 100vh;
 }
+
 .section-1 h1 {
     color: white;
 }
+
 .section-1 p {
     color: #919191;
 }
+
 .section-1 button {
     background-color: #5558E5;
 }
@@ -68,13 +93,16 @@ footer {
     flex-direction: column;
     justify-content: center;
 }
+
 .image-section {
     background-image: url('../img/coliseum-purple.jpeg');
     background-size: cover;
     background-position: center;
     height: 100vh;
 }
-.form-control, .btn {
+
+.form-control,
+.btn {
     margin-bottom: 15px;
 }
 
@@ -89,15 +117,15 @@ footer {
 }
 
 .fixed-form {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 30%;
-  height: 100vh;
-  z-index: 1030;
-  background-color: #1f1f23;
-  padding: 10px;
-  overflow: hidden;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 30%;
+    height: 100vh;
+    z-index: 1030;
+    background-color: #1f1f23;
+    padding: 10px;
+    overflow: hidden;
 }
 
 .right-panel {
@@ -110,6 +138,7 @@ footer {
     border: 1px solid #3a3a3c;
     background-color: #1f1f23;
 }
+
 .card-body {
     color: #fff;
 }
@@ -118,9 +147,11 @@ footer {
     color: #e2e2e2;
     font-weight: 500;
 }
+
 .left-panel .form-check-label {
     color: #ccc;
 }
+
 .left-panel .form-control {
     background-color: #2c2c2e;
     color: #ffffff;
@@ -136,6 +167,7 @@ footer {
     background-color: #4c4c4e;
     border: none;
 }
+
 .left-panel button.btn-primary:hover {
     background-color: #5c5c5e;
 }
@@ -163,6 +195,7 @@ footer {
     border: none;
     color: #fff;
 }
+
 .btn-secondary:hover {
     background-color: #5c5c5e;
 }
@@ -183,12 +216,27 @@ footer {
     margin: 0;
 }
 
-.markdown-body h2, .markdown-body h3 {
+.markdown-body h2,
+.markdown-body h3 {
     margin-top: 1em;
-  }
-  
-  .markdown-body p {
+}
+
+.markdown-body p {
     margin: 0.5em 0;
     line-height: 1.6;
-  }
-  
+}
+
+
+.text-block {
+    white-space: pre-line;
+    font-size: 15px;
+    line-height: 1.6;
+    margin-top: 1em;
+    color: #222;
+}
+
+.day-section {
+    border: 2px solid #999;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+}

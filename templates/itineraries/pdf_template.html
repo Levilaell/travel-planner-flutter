@@ -65,7 +65,7 @@
     <p><strong>Extras:</strong> {{ itinerary.extras }}</p>
 
     <h3>Resumo Geral</h3>
-    <div class="text-block">{{ itinerary.generated_text|strip_markdown }}</div>
+    <div class="text-block">{{ itinerary.generated_text|strip_markdown|safe }}</div>
 
 
 
@@ -75,7 +75,7 @@
     <div class="day-section">
       <h2>Dia {{ d.day_number }} - {{ d.date }}</h2>
       <div class="text-block">
-        {{ d.generated_text|strip_markdown }}
+        {{ d.generated_text|strip_markdown|safe }}
       </div>
 
 
@@ -84,10 +84,12 @@
   {% endfor %}
 
   {# Exemplo de exibição de mapa estático do Google (centrado no destino): #}
-    {% if map_img_path %}
-        <h3>Mapa Geral</h3>
-        <img class="map-img" src="file://{{ map_img_path }}" alt="Mapa Estático">
-    {% endif %}
+  {% if map_img_path %}
+    <h3>🗺️ Mapa Geral</h3>
+    <img class="map-img" src="{{ map_img_path }}" alt="Mapa Estático">
+  {% endif %}
+
+
 
 </body>
 </html>
