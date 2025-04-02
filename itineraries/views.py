@@ -1,35 +1,31 @@
+# views.py
+
 import json
+import os
 from datetime import timedelta
 
+import requests
 from django.conf import settings
-from django.contrib.auth.decorators import login_required  # type: ignore
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse  # ADICIONADO para usar reverse em redirect
+from django.urls import reverse
 
 from .forms import ItineraryForm, ReviewForm
 from .models import Day, Itinerary
-from .services import replace_single_place_in_day  # ADICIONADO
 from .services import (build_markers_json_for_day_replacement,
                        generate_itinerary_overview,
-                       get_cordinates_google_geocoding, plan_one_day_itinerary)
+                       get_cordinates_google_geocoding, plan_one_day_itinerary,
+                       replace_single_place_in_day)
 
 
 @login_required
 def dashboard_view(request):
-    """
-    Página principal:
-    - Painel esquerdo: form de criação (POST -> PRG)
-    - Painel direito: lista de itinerários em cards (GET)
-    - Cada itinerário tem markers_json c/ destino + places_visited (para exibir no mapa do modal)
-    """
     if request.method == 'POST':
         form = ItineraryForm(request.POST)
         if form.is_valid():
             # 1) Criar itinerário
             itinerary = form.save(commit=False)
             itinerary.user = request.user
-
-            # Interesses (checkboxes) => string
             selected_interests = request.POST.getlist('interests_list')
             itinerary.interests = ', '.join(selected_interests)
             itinerary.save()
@@ -66,75 +62,52 @@ def dashboard_view(request):
                 current_date += timedelta(days=1)
                 day_number += 1
 
-            # Redireciona e já passa ID p/ abrir modal automaticamente
             return redirect(f"{reverse('dashboard')}?new_itinerary_id={itinerary.id}")
         else:
             # Form inválido => exibir erros
             itineraries = Itinerary.objects.filter(user=request.user).order_by('-created_at')
-
-            # Montar markers_json para cada itinerary
             for it in itineraries:
                 it.markers_json = build_markers_json(it)
-
             return render(request, 'itineraries/dashboard.html', {
                 'form': form,
                 'itineraries': itineraries,
                 'googlemaps_key': settings.GOOGLEMAPS_KEY,
             })
     else:
-        # GET normal: form vazio + lista itinerários
         form = ItineraryForm()
         itineraries = Itinerary.objects.filter(user=request.user).order_by('-created_at')
-
-        # Preencher markers_json em cada itinerary
         for it in itineraries:
             it.markers_json = build_markers_json(it)
-
-        # Se vier new_itinerary_id na query, passamos p/ template
         new_itinerary_id = request.GET.get('new_itinerary_id', '')
-
         return render(request, 'itineraries/dashboard.html', {
             'form': form,
             'itineraries': itineraries,
             'googlemaps_key': settings.GOOGLEMAPS_KEY,
-            'new_itinerary_id': new_itinerary_id,  # ADICIONADO
+            'new_itinerary_id': new_itinerary_id,
         })
 
 
 def build_markers_json(itinerary):
-    """
-    Retorna uma string JSON contendo [ {name, lat, lng}, ... ]
-    com o destino principal e os lugares dos Days (places_visited).
-    """
     all_markers = []
-    # Destino principal
     if itinerary.lat is not None and itinerary.lng is not None:
         all_markers.append({
             "name": itinerary.destination,
             "lat": float(itinerary.lat),
             "lng": float(itinerary.lng),
         })
-
-    # Percorrer Days -> places_visited
     days = itinerary.days.all()
     for d in days:
         if d.places_visited:
             try:
-                # Mantemos a leitura mas não usamos json.loads() externamente;
-                # só criamos a string final (o python precisará interpretar em build_markers_json).
-                day_places = json.loads(d.places_visited)  # Necessário para unir no array final
+                day_places = json.loads(d.places_visited)
                 all_markers.extend(day_places)
             except json.JSONDecodeError:
                 pass
-
     return json.dumps(all_markers, ensure_ascii=False)
 
 
 @login_required
 def add_review_view(request, pk):
-    """
-    Exemplo se quiser adicionar reviews
-    """
     from .models import Itinerary
     itinerary = get_object_or_404(Itinerary, pk=pk, user=request.user)
     if request.method == 'POST':
@@ -150,13 +123,8 @@ def add_review_view(request, pk):
     return render(request, 'itineraries/add_review.html', {'form': form, 'itinerary': itinerary})
 
 
-# ADICIONADO: nova view para trocar um lugar específico
 @login_required
 def replace_place_view(request):
-    """
-    Substitui um lugar de um Day específico por outro,
-    mantendo o restante. Usa o context existente do dia.
-    """
     if request.method == 'POST':
         day_id = request.POST.get('day_id')
         place_index = request.POST.get('place_index')
@@ -164,17 +132,81 @@ def replace_place_view(request):
 
         day = get_object_or_404(Day, pk=day_id, itinerary__user=request.user)
         itinerary = day.itinerary
-
-        # Chama serviço para trocar UM local
         replace_single_place_in_day(day, place_index, observation)
-
-        # Reconstruir markers para esse itinerário
-        # (para mapear do zero e atualizar o modal)
-        itinerary.lat = itinerary.lat or 0.0
-        itinerary.lng = itinerary.lng or 0.0
-        # Recalcular markers
-        # ...
         return redirect(f"{reverse('dashboard')}?new_itinerary_id={itinerary.id}")
 
-    # Se não for POST, só redireciona
     return redirect('dashboard')
+
+
+###################################
+# NOVAS FUNÇÕES DE EXCLUSÃO E PDF #
+###################################
+
+import tempfile
+
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from weasyprint import HTML
+
+
+@login_required
+def delete_itinerary_view(request, pk):
+    """
+    Exclui um itinerário do usuário logado.
+    """
+    if request.method == 'POST':
+        itinerary = get_object_or_404(Itinerary, pk=pk, user=request.user)
+        itinerary.delete()
+    return redirect('dashboard')
+
+
+@login_required
+def export_itinerary_pdf_view(request, pk):
+    """
+    Gera um PDF do itinerário selecionado, incluindo dados gerais,
+    dias e lugares. Também inclui uma imagem de mapa salva localmente.
+    """
+    itinerary = get_object_or_404(Itinerary, pk=pk, user=request.user)
+
+    map_img_path = None
+
+    # Gera a URL do mapa estático do Google
+    if itinerary.lat and itinerary.lng:
+        map_url = (
+            f"https://maps.googleapis.com/maps/api/staticmap"
+            f"?center={itinerary.lat},{itinerary.lng}"
+            f"&zoom=10&size=600x300"
+            f"&markers=color:red%7Clabel:D%7C{itinerary.lat},{itinerary.lng}"
+            f"&key={settings.GOOGLEMAPS_KEY}"
+        )
+
+        # Baixa a imagem do mapa
+        try:
+            response = requests.get(map_url)
+            if response.status_code == 200:
+                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+                temp_file.write(response.content)
+                temp_file.close()
+                map_img_path = temp_file.name
+        except:
+            map_img_path = None
+
+    # Renderiza o HTML com o caminho local da imagem
+    html_string = render_to_string('itineraries/pdf_template.html', {
+        'itinerary': itinerary,
+        'map_img_path': map_img_path,
+    })
+
+    # Gera o PDF
+    pdf_file = HTML(string=html_string).write_pdf()
+
+    # Apaga o arquivo temporário depois de gerar o PDF
+    if map_img_path and os.path.exists(map_img_path):
+        os.remove(map_img_path)
+
+    # Retorna o PDF como resposta para download
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    filename = f"Itinerario_{itinerary.destination}.pdf"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+    return response

@@ -96,7 +96,7 @@
                      value="Aventura">
               <label class="form-check-label" for="interestAventura">Aventura</label>
             </div>
-            <!-- Você pode adicionar mais checkboxes de interesse aqui -->
+            <!-- Adicione mais checkboxes de interesse aqui -->
           </div>
           <div class="form-text">
             Selecione quantos quiser: cultura, gastronomia, aventura, compras, natureza, etc.
@@ -126,7 +126,7 @@
           </select>
         </div>
 
-        <!-- Novo campo: Tipo de Viagem (exemplo) -->
+        <!-- Tipo de Viagem -->
         <div class="mb-3">
           <label class="form-label">Tipo de Viagem</label>
           <select class="form-select" name="trip_type">
@@ -180,12 +180,40 @@
                   <p class="card-text">
                     {{ it.start_date }} → {{ it.end_date }}<br>
                   </p>
+
+                  <!-- Botões adicionais: Excluir e Download PDF -->
+                  <div class="my-2">
+                    <!-- Form para exclusão -->
+                    <form method="POST" action="{% url 'delete_itinerary' it.id %}" style="display:inline;">
+                      {% csrf_token %}
+                  
+                      <!-- Botão Ver Detalhes -->
+                      <button class="btn btn-sm btn-outline-light"
+                              type="button"
+                              data-bs-toggle="modal"
+                              data-bs-target="#modalIt{{ it.id }}">
+                        Ver Detalhes
+                      </button>
+                  
+                      <!-- Link para download do PDF -->
+                      <a href="{% url 'export_itinerary_pdf' it.id %}"
+                         class="btn btn-sm btn-outline-light">
+                        Baixar PDF
+                      </a>
+                  
+                      <!-- Botão Excluir (no final) -->
+                      <button type="submit"
+                              class="btn btn-sm btn-outline-danger"
+                              onclick="return confirm('Tem certeza que deseja excluir este itinerário?')">
+                        Excluir
+                      </button>
+                    </form>
+                  </div>
+                  
+                  
+
                   <!-- Botão que abre modal -->
-                  <button class="btn btn-sm btn-outline-light"
-                          data-bs-toggle="modal"
-                          data-bs-target="#modalIt{{ it.id }}">
-                    Ver Detalhes
-                  </button>
+                  
                 </div>
               </div>
             </div>
@@ -239,7 +267,6 @@
                               {{ d.generated_text|markdownify|safe }}
                             </div>
                             
-                            <!-- LISTA DE LUGARES (TROCA) -->
                             {% if d.places_visited %}
                               <div class="mt-3">
                                 <strong>Lugares (Editar individualmente):</strong>
@@ -247,7 +274,7 @@
                                 <script>
                                   (function(){
                                     var container = document.getElementById("day-places-{{d.id}}");
-                                    var rawData = {{ d.places_visited|safe }}; // string JSON
+                                    var rawData = `{{ d.places_visited|safe }}`; // string JSON
                                     try {
                                       var placesArr = JSON.parse(rawData);
                                       if(Array.isArray(placesArr)){
@@ -255,7 +282,7 @@
                                         placesArr.forEach(function(p, idx){
                                           var placeName = p.name || "Local desconhecido";
                                           // Botão de troca ♻️
-                                          html += 
+                                          html += `
                                             <div class="mt-2">
                                               ${idx+1}. ${placeName}
                                               <button class="btn btn-sm btn-link text-warning replace-place-btn"
@@ -267,7 +294,7 @@
                                                 🔄
                                               </button>
                                             </div>
-                                          ;
+                                          `;
                                         });
                                         container.innerHTML = html;
                                       }
@@ -343,8 +370,6 @@
 {% endblock %}
 
 {% block extra_scripts %}
-
-<!-- Função global: inicializa autocomplete e lógica dos mapas -->
 <script>
   function initAutocomplete() {
     // 1) Autocomplete no input de destino
@@ -352,10 +377,8 @@
     if (destInput) {
       const autocomplete = new google.maps.places.Autocomplete(destInput, {
         types: ['(cities)'],
-        // componentRestrictions: { country: "br" },
       });
 
-      // Exemplo de captura do lugar selecionado
       autocomplete.addListener('place_changed', function() {
         const place = autocomplete.getPlace();
         if (place.geometry) {
@@ -370,16 +393,15 @@
     const modals = document.querySelectorAll('.modal.fade');
     modals.forEach(modal => {
       modal.addEventListener('shown.bs.modal', (event) => {
-        const modalId = modal.getAttribute('id');   // Ex: "modalIt12" ou "replaceModal"
+        const modalId = modal.getAttribute('id');
         if(modalId && modalId.startsWith("modalIt")){
-          const itineraryId = modalId.replace('modalIt',''); // "12"
+          const itineraryId = modalId.replace('modalIt','');
           initMultipleMarkers(itineraryId);
         }
       });
     });
   }
 
-  // Lógica de criar vários marcadores em cada mapa de itinerário
   function initMultipleMarkers(itineraryId) {
     const mapDiv = document.getElementById("map" + itineraryId);
     if (!mapDiv) return;
@@ -397,7 +419,6 @@
       return;
     }
   
-    // Cria o mapa centralizado no primeiro marcador
     const initialCoords = { lat: markersData[0].lat, lng: markersData[0].lng };
     const map = new google.maps.Map(mapDiv, {
       zoom: 12,
@@ -416,7 +437,6 @@
       bounds.extend(position);
     });
   
-    // Ajusta o mapa se houver mais de 1 marcador
     if (markersData.length > 1) {
       map.fitBounds(bounds);
     } else {
@@ -425,7 +445,6 @@
     }
   }
 
-  // Abre automaticamente o modal do último roteiro criado (se houver)
   document.addEventListener("DOMContentLoaded", function(){
     var autoOpenId = "{{ new_itinerary_id|default:'' }}";
     if(autoOpenId){
@@ -436,21 +455,18 @@
       }
     }
 
-    // Ao clicar no botão ♻️ de qualquer lugar, preenche os hidden fields e abre modal de troca
     document.body.addEventListener("click", function(e){
       if(e.target && e.target.classList.contains("replace-place-btn")){
         var dayId = e.target.getAttribute("data-dayid");
         var placeIndex = e.target.getAttribute("data-index");
         document.getElementById("replaceDayId").value = dayId;
         document.getElementById("replaceIndex").value = placeIndex;
-        // Observation é um textarea -> limpa a cada clique
         document.getElementById("replaceObservation").value = "";
       }
     });
   });
 </script>
 
-<!-- Carrega Google Maps (inclui a biblioteca "places" e chama initAutocomplete no callback) -->
 <script
   src="https://maps.googleapis.com/maps/api/js?key={{ googlemaps_key }}&libraries=places&callback=initAutocomplete"
   async

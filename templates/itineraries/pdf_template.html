@@ -1,0 +1,93 @@
+{# templates/itineraries/pdf_template.html #}
+
+{% load static %}
+{% load filters %}
+
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>PDF - {{ itinerary.destination }}</title>
+  <style>
+    body {
+      font-family: "Arial", sans-serif;
+      color: #333;
+      margin: 20px;
+    }
+    h1, h2, h3 {
+      margin-bottom: 0.2em;
+      color: #444;
+    }
+    .itinerary-info {
+      margin-bottom: 20px;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 15px;
+    }
+    .day-section {
+      margin-bottom: 30px;
+      padding: 10px;
+      border: 1px solid #ccc;
+    }
+    .day-section h2 {
+      margin-top: 0;
+      color: #555;
+    }
+    pre {
+      white-space: pre-wrap;
+      font-family: "Arial", sans-serif;
+      font-size: 14px;
+    }
+    .map-img {
+      margin-top: 10px;
+      display: block;
+      max-width: 100%;
+      height: auto;
+    }
+    .text-block {
+        white-space: pre-line;
+        font-size: 15px;
+        line-height: 1.6;
+        margin-top: 1em;
+      }
+  </style>
+</head>
+<body>
+
+  <h1>Itinerário: {{ itinerary.destination }}</h1>
+  <div class="itinerary-info">
+    <p><strong>Data:</strong> {{ itinerary.start_date }} → {{ itinerary.end_date }}</p>
+    <p><strong>Orçamento:</strong> R$ {{ itinerary.budget }}</p>
+    <p><strong>Viajantes:</strong> {{ itinerary.travelers }}</p>
+    <p><strong>Interesses:</strong> {{ itinerary.interests }}</p>
+    <p><strong>Alimentação:</strong> {{ itinerary.food_preferences }}</p>
+    <p><strong>Transporte:</strong> {{ itinerary.transport_mode }}</p>
+    <p><strong>Extras:</strong> {{ itinerary.extras }}</p>
+
+    <h3>Resumo Geral</h3>
+    <div class="text-block">{{ itinerary.generated_text|strip_markdown }}</div>
+
+
+
+  </div>
+
+  {% for d in itinerary.days.all|dictsort:"day_number" %}
+    <div class="day-section">
+      <h2>Dia {{ d.day_number }} - {{ d.date }}</h2>
+      <div class="text-block">
+        {{ d.generated_text|strip_markdown }}
+      </div>
+
+
+
+    </div>
+  {% endfor %}
+
+  {# Exemplo de exibição de mapa estático do Google (centrado no destino): #}
+    {% if map_img_path %}
+        <h3>Mapa Geral</h3>
+        <img class="map-img" src="file://{{ map_img_path }}" alt="Mapa Estático">
+    {% endif %}
+
+</body>
+</html>
