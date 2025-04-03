@@ -3,6 +3,9 @@
 import json
 import os
 from datetime import datetime
+# >>> ADIÇÃO IMPORTANTE <<<
+from urllib.parse import \
+    quote  # Usado para codificar o endereço no link do Google Maps
 
 import openai
 import requests
@@ -95,7 +98,6 @@ Apenas retorne a lista, sem texto adicional.
 
     content = response.choices[0].message["content"]
     try:
-        # Aqui, como está no Python, precisamos interpretar a resposta
         places_list = json.loads(content)
         places_list = [p.strip() for p in places_list if isinstance(p, str)]
         return places_list
@@ -107,10 +109,17 @@ Apenas retorne a lista, sem texto adicional.
 # 3) Google Places: coordenadas
 #############################
 
-def get_place_coordinates(place_name, reference_location="48.8566,2.3522", radius=5000):
+def get_place_coordinates(place_name, reference_location="48.8566,2.3522", radius=50000, context_location=""):
     base_url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
+
+    # 👉 Inclui contexto (ex: 'Alagoas, Brasil') na query, se fornecido
+    if context_location:
+        full_query = f"{place_name}, {context_location}"
+    else:
+        full_query = place_name
+
     params = {
-        "query": place_name,
+        "query": full_query,
         "location": reference_location,
         "radius": radius,
         "key": settings.GOOGLEMAPS_KEY,
@@ -120,12 +129,21 @@ def get_place_coordinates(place_name, reference_location="48.8566,2.3522", radiu
         response.raise_for_status()
         data = response.json()
         if data["status"] == "OK" and data["results"]:
-            location = data["results"][0]["geometry"]["location"]
-            return location["lat"], location["lng"]
+            for result in data["results"]:
+                address = result.get("formatted_address", "").lower()
+                if context_location:
+                    context_normalized = context_location.lower()
+                    # Aceita se o endereço contiver o estado ou cidade fornecida
+                    if context_normalized in address or context_normalized.split(",")[0] in address:
+                        location = result["geometry"]["location"]
+                        return location["lat"], location["lng"]
+            # Se nenhum endereço bater com o contexto, retorna None
+            return None, None
         else:
             return None, None
     except requests.RequestException:
         return None, None
+
 
 
 #############################
@@ -282,7 +300,14 @@ def verify_and_update_places(day_text, lat, lng):
                 new_lines.append(not_found_msg)
             else:
                 address = place_data.get("formatted_address", "Endereço não encontrado")
-                new_line = f"{line}\n(endereço verificado: {address})"
+                # >>> ADIÇÃO IMPORTANTE <<<
+                encoded_addr = quote(address)
+                # Inclui o link para Google Maps baseado no endereço, NÃO nas coordenadas
+                new_line = (
+                    f"{line}\n"
+                    f"(endereço verificado: {address})\n"
+                    f"[Ver no Google Maps](https://www.google.com/maps/search/?api=1&query={encoded_addr})"
+                )
                 new_lines.append(new_line)
         else:
             new_lines.append(line)
@@ -345,7 +370,7 @@ def plan_one_day_itinerary(itinerary, day, already_visited=None):
     reference_location = f"{itinerary.lat},{itinerary.lng}" if itinerary.lat and itinerary.lng else "48.8566,2.3522"
     locations = []
     for place in filtered_places:
-        latlng = get_place_coordinates(place, reference_location=reference_location)
+        latlng = get_place_coordinates(place, reference_location=reference_location, context_location=itinerary.destination)
         if latlng[0] is not None:
             locations.append({
                 "name": place,
@@ -479,12 +504,12 @@ def replace_single_place_in_day(day, place_index, user_observation):
     new_place_name = suggest_one_new_place_gpt(itinerary, day, visited_set, user_observation)
     if not new_place_name:
         # Caso não consiga, nada é alterado
-        # (poderíamos inserir "Local indisponível" mas deixamos vazio)
         pass
     else:
         # Obter lat/lng
         reference_location = f"{itinerary.lat},{itinerary.lng}" if itinerary.lat and itinerary.lng else "48.8566,2.3522"
-        latlng = get_place_coordinates(new_place_name, reference_location=reference_location)
+        latlng = get_place_coordinates(new_place_name, reference_location=reference_location, context_location=itinerary.destination)
+
         if latlng[0] is not None:
             current_places.insert(int(place_index), {
                 "name": new_place_name,
@@ -492,7 +517,6 @@ def replace_single_place_in_day(day, place_index, user_observation):
                 "lng": latlng[1]
             })
         else:
-            # Não conseguiu achar lat/lng: reinserir mesmo assim, mas sem coords
             current_places.insert(int(place_index), {
                 "name": new_place_name,
                 "lat": None,
@@ -500,7 +524,6 @@ def replace_single_place_in_day(day, place_index, user_observation):
             })
 
     # 3) Re-gerar o texto do dia
-    # Montar route_ordered com base na ordem atual (não mexemos nas posições)
     route_ordered = current_places
 
     weather_data = get_weather_info(itinerary.destination)
@@ -514,15 +537,9 @@ def replace_single_place_in_day(day, place_index, user_observation):
 
 
 def suggest_one_new_place_gpt(itinerary, day, visited_set, user_observation):
-    """
-    Chama GPT para sugerir apenas 1 local substituto,
-    evitando repetição de 'visited_set'.
-    """
     visited_str = ", ".join(list(visited_set)) if visited_set else "Nenhum"
     day_number = day.day_number
 
-    # Prompt adicional. Não estamos alterando os prompts anteriores;
-    # apenas adicionamos este para a troca de lugar.
     prompt = f"""
 Você é um planejador de viagens especializado em {itinerary.destination}.
 Preciso substituir um único local que não agradou.
@@ -557,7 +574,6 @@ Comece o seu dia em Paris com um delicioso café da manhã na famosa Boulangerie
             temperature=0.8
         )
         content = response.choices[0].message["content"].strip()
-        # Retorna só a string
         return content
     except:
         return ""
