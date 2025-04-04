@@ -109,17 +109,10 @@ Apenas retorne a lista, sem texto adicional.
 # 3) Google Places: coordenadas
 #############################
 
-def get_place_coordinates(place_name, reference_location="48.8566,2.3522", radius=50000, context_location=""):
+def get_place_coordinates(place_name, reference_location="48.8566,2.3522", radius=5000):
     base_url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
-
-    # 👉 Inclui contexto (ex: 'Alagoas, Brasil') na query, se fornecido
-    if context_location:
-        full_query = f"{place_name}, {context_location}"
-    else:
-        full_query = place_name
-
     params = {
-        "query": full_query,
+        "query": place_name,
         "location": reference_location,
         "radius": radius,
         "key": settings.GOOGLEMAPS_KEY,
@@ -129,21 +122,12 @@ def get_place_coordinates(place_name, reference_location="48.8566,2.3522", radiu
         response.raise_for_status()
         data = response.json()
         if data["status"] == "OK" and data["results"]:
-            for result in data["results"]:
-                address = result.get("formatted_address", "").lower()
-                if context_location:
-                    context_normalized = context_location.lower()
-                    # Aceita se o endereço contiver o estado ou cidade fornecida
-                    if context_normalized in address or context_normalized.split(",")[0] in address:
-                        location = result["geometry"]["location"]
-                        return location["lat"], location["lng"]
-            # Se nenhum endereço bater com o contexto, retorna None
-            return None, None
+            location = data["results"][0]["geometry"]["location"]
+            return location["lat"], location["lng"]
         else:
             return None, None
     except requests.RequestException:
         return None, None
-
 
 
 #############################
@@ -370,7 +354,7 @@ def plan_one_day_itinerary(itinerary, day, already_visited=None):
     reference_location = f"{itinerary.lat},{itinerary.lng}" if itinerary.lat and itinerary.lng else "48.8566,2.3522"
     locations = []
     for place in filtered_places:
-        latlng = get_place_coordinates(place, reference_location=reference_location, context_location=itinerary.destination)
+        latlng = get_place_coordinates(place, reference_location=reference_location)
         if latlng[0] is not None:
             locations.append({
                 "name": place,
@@ -508,8 +492,7 @@ def replace_single_place_in_day(day, place_index, user_observation):
     else:
         # Obter lat/lng
         reference_location = f"{itinerary.lat},{itinerary.lng}" if itinerary.lat and itinerary.lng else "48.8566,2.3522"
-        latlng = get_place_coordinates(new_place_name, reference_location=reference_location, context_location=itinerary.destination)
-
+        latlng = get_place_coordinates(new_place_name, reference_location=reference_location)
         if latlng[0] is not None:
             current_places.insert(int(place_index), {
                 "name": new_place_name,
