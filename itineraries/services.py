@@ -1,11 +1,7 @@
-# services.py
-
 import json
 import os
 from datetime import datetime
-# >>> ADIÇÃO IMPORTANTE <<<
-from urllib.parse import \
-    quote  # Usado para codificar o endereço no link do Google Maps
+from urllib.parse import quote
 
 import openai
 import requests
@@ -76,19 +72,22 @@ Para o dia {day_number} da viagem, considerando:
 - Viajantes: {itinerary.travelers}
 - Locais já visitados em dias anteriores: {visited_str}
 
-Gere uma lista (de 3 a 6) locais interessantes para visitar neste dia, incluindo pontos turísticos,
-restaurantes, atrações culturais, etc. Sem repetir lugares já visitados.
+Gere uma lista de 6 locais interessantes e reais para visitar neste dia (desde a manhã até a noite), incluindo pontos turísticos, restaurantes, atrações culturais, etc., SEM repetir lugares já visitados.
+Certifique-se de que os locais sugeridos existam de fato e sejam facilmente verificados no Google Maps.
+
 Responda em formato JSON, assim:
 
 [
-  "Lugar 1",
-  "Lugar 2",
-  "Lugar 3"
+  "Local 1",
+  "Local 2",
+  "Local 3",
+  "Local 4",
+  "Local 5",
+  "Local 6"
 ]
 
 Apenas retorne a lista, sem texto adicional.
 """
-
     response = openai.ChatCompletion.create(
         model="gpt-4o-mini",
         messages=[{"role": "user", "content": prompt}],
@@ -109,10 +108,11 @@ Apenas retorne a lista, sem texto adicional.
 # 3) Google Places: coordenadas
 #############################
 
-def get_place_coordinates(place_name, reference_location="48.8566,2.3522", radius=5000):
+def get_place_coordinates(place_name, reference_location="48.8566,2.3522", destination=None, radius=5000):
     base_url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
+    query = f"{place_name}, {destination}" if destination else place_name
     params = {
-        "query": place_name,
+        "query": query,
         "location": reference_location,
         "radius": radius,
         "key": settings.GOOGLEMAPS_KEY,
@@ -217,7 +217,7 @@ def generate_day_text_gpt(itinerary, day, ordered_places, weather_info=None):
 
     prompt = f"""
 Você é um planejador de viagens inteligente e criativo.
-Gere um roteiro detalhado para o dia, no formato abaixo:
+Gere um roteiro detalhado para o dia, no seguinte formato:
 
 {day_title}
 📍 Roteiro Detalhado para um Dia em {destination}
@@ -227,31 +227,21 @@ Gere um roteiro detalhado para o dia, no formato abaixo:
 🍽️ Destaques Gastronômicos: (exemplos de comida típica)
 📸 Locais Visitados: {visited_str}
 
-Agora, para cada local abaixo (nesta ordem!), crie um bloco com:
+Agora, para cada local abaixo (mantendo a ordem exata listada), crie um bloco com:
 - Horário (ex: 7h30 – Café da Manhã ...)
-- Marcador '📍' + endereço (ex: '📍 Boulangerie X, 8 Rue ...')
-- Texto completo explicativo, falando sobre o lugar, o que fazer e tudo mais.
-
-Padrão de resposta:
-
-7h30 – Café da Manhã
-
-📍 Boulangerie Poilâne, 8 Rue du Cherche-Midi
-(endereço verificado: 8 Rue du Cherche-Midi, 75006 Paris, France)
-Comece o seu dia em Paris com um delicioso café da manhã na famosa Boulangerie Poilâne. Experimente um croissant fresco ou uma fatia de pão de centeio, acompanhado por um café expresso. Este local é conhecido por suas receitas tradicionais e ingredientes de alta qualidade, tornando-se uma excelente escolha para se energizar antes de um dia cheio de turismo.
-
+- Marcador "📍" seguido do nome e endereço verificado (ex: "📍 Boulangerie X, 8 Rue ...")
+- Texto explicativo completo sobre o local, destacando o que fazer, pontos de interesse e informações relevantes.
+Importante: NÃO altere ou confunda os nomes dos locais listados; a descrição deve ser coerente com o nome e tipo reais do estabelecimento.
 
 Ordem de Locais a Visitar (não alterar!):
 """
-
     for i, name in enumerate(visited_names, start=1):
         prompt += f"{i}. {name}\n"
 
     prompt += """
 No final, inclua uma 'DICA FINAL' ou 'OBSERVAÇÃO' sobre o destino.
-Responda em português e mantenha um tom amigável.
+Responda em português mantendo um tom amigável.
 """
-
     response = openai.ChatCompletion.create(
         model="gpt-4o-mini",
         messages=[{"role": "user", "content": prompt}],
@@ -266,7 +256,7 @@ Responda em português e mantenha um tom amigável.
 # 7) Verificar e inserir endereços
 #############################
 
-def verify_and_update_places(day_text, lat, lng):
+def verify_and_update_places(day_text, lat, lng, destination):
     location_str = f"{lat},{lng}" if lat and lng else "48.8566,2.3522"
     lines = day_text.splitlines()
     new_lines = []
@@ -278,15 +268,13 @@ def verify_and_update_places(day_text, lat, lng):
                 new_lines.append(line)
                 continue
 
-            place_data = search_place_in_google_maps(place_candidate, location=location_str)
+            place_data = search_place_in_google_maps(place_candidate, location=location_str, destination=destination)
             if place_data is None:
                 not_found_msg = f"{line}\n⚠️ [AVISO] Não encontramos '{place_candidate}' no Google Places."
                 new_lines.append(not_found_msg)
             else:
                 address = place_data.get("formatted_address", "Endereço não encontrado")
-                # >>> ADIÇÃO IMPORTANTE <<<
                 encoded_addr = quote(address)
-                # Inclui o link para Google Maps baseado no endereço, NÃO nas coordenadas
                 new_line = (
                     f"{line}\n"
                     f"(endereço verificado: {address})\n"
@@ -299,10 +287,11 @@ def verify_and_update_places(day_text, lat, lng):
     return "\n".join(new_lines)
 
 
-def search_place_in_google_maps(place_name, location="48.8566,2.3522", radius=5000):
+def search_place_in_google_maps(place_name, location="48.8566,2.3522", destination=None, radius=5000):
     base_url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
+    query = f"{place_name}, {destination}" if destination else place_name
     params = {
-        "query": place_name,
+        "query": query,
         "location": location,
         "radius": radius,
         "key": settings.GOOGLEMAPS_KEY,
@@ -327,20 +316,16 @@ def plan_one_day_itinerary(itinerary, day, already_visited=None):
     if already_visited is None:
         already_visited = []
 
-    # -------------------------------------------
-    # 1) Tentar Sugerir lugares (GPT) até 5 vezes
-    # -------------------------------------------
     max_attempts = 5
     raw_places = []
     for attempt in range(1, max_attempts + 1):
         raw_places = suggest_places_gpt(itinerary, day.day_number, already_visited)
-        if raw_places:  # Se não for vazio, ok
+        if raw_places:
             break
 
     if not raw_places:
         return ("Não foi possível encontrar locais para este dia após 5 tentativas.", [])
 
-    # 2) Filtro manual p/ remover duplicados e places já visitados
     lower_visited = [p.lower() for p in already_visited]
     filtered_places = []
     for p in raw_places:
@@ -350,11 +335,10 @@ def plan_one_day_itinerary(itinerary, day, already_visited=None):
     if not filtered_places:
         return ("Todos os lugares sugeridos já foram visitados ou são duplicados.", [])
 
-    # 3) Obter lat/lng
     reference_location = f"{itinerary.lat},{itinerary.lng}" if itinerary.lat and itinerary.lng else "48.8566,2.3522"
     locations = []
     for place in filtered_places:
-        latlng = get_place_coordinates(place, reference_location=reference_location)
+        latlng = get_place_coordinates(place, reference_location=reference_location, destination=itinerary.destination)
         if latlng[0] is not None:
             locations.append({
                 "name": place,
@@ -365,26 +349,20 @@ def plan_one_day_itinerary(itinerary, day, already_visited=None):
     if not locations:
         return ("Não foi possível obter coordenadas para os locais sugeridos.", [])
 
-    # 4) Distâncias
     distance_matrix = build_distance_matrix(locations)
     if not distance_matrix:
         return ("Não foi possível calcular distâncias entre os locais.", [])
 
-    # 5) Rota
     route_indices = find_optimal_route(locations, distance_matrix)
     route_ordered = [locations[i] for i in route_indices]
 
-    # 6) Gera texto final
     weather_data = get_weather_info(itinerary.destination)
     raw_day_text = generate_day_text_gpt(itinerary, day, route_ordered, weather_info=weather_data)
 
-    # 7) Verificar endereços
-    verified_text = verify_and_update_places(raw_day_text, itinerary.lat, itinerary.lng)
+    verified_text = verify_and_update_places(raw_day_text, itinerary.lat, itinerary.lng, itinerary.destination)
 
-    # Monta lista final de nomes confirmados
     final_place_names = [loc["name"] for loc in route_ordered]
 
-    # SALVA a lista de lugares (com lat/lng) no campo places_visited do Day (JSON serializado)
     day.places_visited = json.dumps(route_ordered, ensure_ascii=False)
     day.generated_text = verified_text
     day.save(update_fields=["places_visited", "generated_text"])
@@ -436,9 +414,6 @@ def get_cordinates_google_geocoding(address):
 ################################################
 
 def build_markers_json_for_day_replacement(day):
-    """
-    Recria markers com base nos lugares do day.
-    """
     all_markers = []
     try:
         if day.places_visited:
@@ -450,15 +425,7 @@ def build_markers_json_for_day_replacement(day):
 
 
 def replace_single_place_in_day(day, place_index, user_observation):
-    """
-    Tenta substituir somente UM local do day por outro,
-    mantendo todo o resto.
-    - Evita duplicar ou repetir lugares (considerando days anteriores e o dia atual).
-    - Faz nova chamada GPT p/ 1 sugestão, considerando a observation do usuário.
-    - Atualiza places_visited e re-regenera day.generated_text no final.
-    """
     itinerary = day.itinerary
-    # 1) Já visitados: todos os dias anteriores + todos do dia atual (exceto o place a remover)
     all_days = itinerary.days.all().order_by('day_number')
     visited_set = set()
 
@@ -468,14 +435,12 @@ def replace_single_place_in_day(day, place_index, user_observation):
         try:
             arr = json.loads(d.places_visited)
             for i, pl in enumerate(arr):
-                # Se for o dia e o index que vamos remover, não conta como visited
                 if d.id == day.id and i == int(place_index):
                     continue
                 visited_set.add(pl["name"].lower())
         except:
             pass
 
-    # remove do day
     current_places = []
     try:
         current_places = json.loads(day.places_visited)
@@ -484,15 +449,10 @@ def replace_single_place_in_day(day, place_index, user_observation):
     if int(place_index) < len(current_places):
         current_places.pop(int(place_index))
 
-    # 2) Chamar GPT para sugerir UM único lugar substituto
     new_place_name = suggest_one_new_place_gpt(itinerary, day, visited_set, user_observation)
-    if not new_place_name:
-        # Caso não consiga, nada é alterado
-        pass
-    else:
-        # Obter lat/lng
+    if new_place_name:
         reference_location = f"{itinerary.lat},{itinerary.lng}" if itinerary.lat and itinerary.lng else "48.8566,2.3522"
-        latlng = get_place_coordinates(new_place_name, reference_location=reference_location)
+        latlng = get_place_coordinates(new_place_name, reference_location=reference_location, destination=itinerary.destination)
         if latlng[0] is not None:
             current_places.insert(int(place_index), {
                 "name": new_place_name,
@@ -506,15 +466,11 @@ def replace_single_place_in_day(day, place_index, user_observation):
                 "lng": None
             })
 
-    # 3) Re-gerar o texto do dia
-    route_ordered = current_places
-
     weather_data = get_weather_info(itinerary.destination)
-    raw_day_text = generate_day_text_gpt(itinerary, day, route_ordered, weather_info=weather_data)
-    verified_text = verify_and_update_places(raw_day_text, itinerary.lat, itinerary.lng)
+    raw_day_text = generate_day_text_gpt(itinerary, day, current_places, weather_info=weather_data)
+    verified_text = verify_and_update_places(raw_day_text, itinerary.lat, itinerary.lng, itinerary.destination)
 
-    # 4) Persistir
-    day.places_visited = json.dumps(route_ordered, ensure_ascii=False)
+    day.places_visited = json.dumps(current_places, ensure_ascii=False)
     day.generated_text = verified_text
     day.save(update_fields=["places_visited", "generated_text"])
 
@@ -525,30 +481,19 @@ def suggest_one_new_place_gpt(itinerary, day, visited_set, user_observation):
 
     prompt = f"""
 Você é um planejador de viagens especializado em {itinerary.destination}.
-Preciso substituir um único local que não agradou.
-Aqui estão detalhes:
+Preciso substituir um local que não agradou.
+Detalhes:
+- Dia da viagem: {day_number}
+- Interesses: {itinerary.interests}
+- Preferências Alimentares: {itinerary.food_preferences}
+- Orçamento: {itinerary.budget}
+- Viajantes: {itinerary.travelers}
+- Locais já visitados (não repetir): {visited_str}
+- Observação do usuário sobre o novo local: {user_observation}
 
-Dia da viagem: {day_number}
-Interesses: {itinerary.interests}
-Preferências Alimentares: {itinerary.food_preferences}
-Orçamento: {itinerary.budget}
-Viajantes: {itinerary.travelers}
-Locais já visitados (não repetir): {visited_str}
-
-Observação do usuário sobre o novo local: {user_observation}
-
-Sugira APENAS UM lugar (apenas o nome, sem explicação), que seja coerente com esse contexto.
+Sugira APENAS UM lugar (apenas o nome, sem explicação) que seja real, existente e coerente com o contexto acima.
 Responda apenas com o nome do lugar, sem texto adicional.
-
-Padrão de resposta para cada lugar:
-
-7h30 – Café da Manhã
-
-📍 Boulangerie Poilâne, 8 Rue du Cherche-Midi
-(endereço verificado: 8 Rue du Cherche-Midi, 75006 Paris, France)
-Comece o seu dia em Paris com um delicioso café da manhã na famosa Boulangerie Poilâne. Experimente um croissant fresco ou uma fatia de pão de centeio, acompanhado por um café expresso. Este local é conhecido por suas receitas tradicionais e ingredientes de alta qualidade, tornando-se uma excelente escolha para se energizar antes de um dia cheio de turismo.
 """
-
     try:
         response = openai.ChatCompletion.create(
             model="gpt-4o-mini",

@@ -13,27 +13,23 @@
 
       <!-- Exibe possíveis erros de formulário -->
       {% if form.errors %}
-        <div class="alert alert-danger w-100">
-          <ul class="mb-0">
-            {% for field, errors in form.errors.items %}
-              {% for error in errors %}
-                <li><strong>{{ field }}:</strong> {{ error }}</li>
-              {% endfor %}
+      <div class="alert alert-danger w-100">
+        <ul class="mb-0">
+          {% for field, errors in form.errors.items %}
+            {% for error in errors %}
+              <li><strong>{{ field }}:</strong> {{ error }}</li>
             {% endfor %}
-          </ul>
-        </div>
+          {% endfor %}
+        </ul>
+      </div>
       {% endif %}
 
       <form method="POST" action="{% url 'dashboard' %}" class="w-100 needs-validation" novalidate>
         {% csrf_token %}
-        
         <!-- Grupo: Destino -->
         <div class="mb-3">
           <label for="destination" class="form-label">Destino *</label>
-          <input type="text" class="form-control" id="destination"
-                 name="destination"
-                 placeholder="Ex: Natal, Brasil"
-                 required>
+          <input type="text" class="form-control" id="destination" name="destination" placeholder="Ex: Natal, Brasil" required>
           <div class="form-text">
             Informe uma cidade/país ou região principal que deseja visitar.
           </div>
@@ -43,15 +39,11 @@
         <div class="row g-2 mb-3">
           <div class="col">
             <label for="startDate" class="form-label">Data Início *</label>
-            <input type="date" class="form-control" id="startDate"
-                   name="start_date"
-                   required>
+            <input type="date" class="form-control" id="startDate" name="start_date" required>
           </div>
           <div class="col">
             <label for="endDate" class="form-label">Data Final *</label>
-            <input type="date" class="form-control" id="endDate"
-                   name="end_date"
-                   required>
+            <input type="date" class="form-control" id="endDate" name="end_date" required>
           </div>
         </div>
 
@@ -59,18 +51,14 @@
         <div class="row g-2 mb-3">
           <div class="col">
             <label for="budget" class="form-label">Orçamento (R$) *</label>
-            <input type="number" class="form-control" id="budget"
-                   name="budget" step="0.01"
-                   placeholder="Ex: 2000"
-                   required>
+            <input type="number" class="form-control" id="budget" name="budget" step="0.01" placeholder="Ex: 2000" required>
             <div class="form-text">
               Valor total estimado para a viagem.
             </div>
           </div>
           <div class="col">
             <label for="travelers" class="form-label">Nº de Viajantes</label>
-            <input type="number" class="form-control" id="travelers"
-                   name="travelers" min="1" value="1">
+            <input type="number" class="form-control" id="travelers" name="travelers" min="1" value="1">
           </div>
         </div>
 
@@ -79,21 +67,15 @@
           <label class="form-label d-block">Interesses Principais</label>
           <div class="d-flex flex-wrap gap-3">
             <div class="form-check">
-              <input class="form-check-input" type="checkbox"
-                     id="interestCultura" name="interests_list"
-                     value="Cultura">
+              <input class="form-check-input" type="checkbox" id="interestCultura" name="interests_list" value="Cultura">
               <label class="form-check-label" for="interestCultura">Cultura</label>
             </div>
             <div class="form-check">
-              <input class="form-check-input" type="checkbox"
-                     id="interestGastronomia" name="interests_list"
-                     value="Gastronomia">
+              <input class="form-check-input" type="checkbox" id="interestGastronomia" name="interests_list" value="Gastronomia">
               <label class="form-check-label" for="interestGastronomia">Gastronomia</label>
             </div>
             <div class="form-check">
-              <input class="form-check-input" type="checkbox"
-                     id="interestAventura" name="interests_list"
-                     value="Aventura">
+              <input class="form-check-input" type="checkbox" id="interestAventura" name="interests_list" value="Aventura">
               <label class="form-check-label" for="interestAventura">Aventura</label>
             </div>
             <!-- Adicione mais checkboxes de interesse aqui -->
@@ -141,9 +123,7 @@
         <!-- Locais de Interesse -->
         <div class="mb-3">
           <label for="interestPlaces" class="form-label">Locais de Interesse</label>
-          <textarea class="form-control" id="interestPlaces" name="interest_places"
-                    rows="2"
-                    placeholder="Ex: Ponto X, Museu Y, Parque Z"></textarea>
+          <textarea class="form-control" id="interestPlaces" name="interest_places" rows="2" placeholder="Ex: Ponto X, Museu Y, Parque Z"></textarea>
           <div class="form-text">
             Se já tiver alguma lista de locais que quer muito visitar, informe aqui.
           </div>
@@ -152,9 +132,7 @@
         <!-- Extras -->
         <div class="mb-3">
           <label for="extras" class="form-label">Observações / Extras</label>
-          <textarea class="form-control" id="extras" name="extras"
-                    rows="3"
-                    placeholder="Ex: Acessibilidade, hospedagem 5 estrelas, etc."></textarea>
+          <textarea class="form-control" id="extras" name="extras" rows="3" placeholder="Ex: Acessibilidade, hospedagem 5 estrelas, etc."></textarea>
         </div>
 
         <div class="text-center">
@@ -166,124 +144,111 @@
     </div>
     <!-- /Painel Esquerdo -->
 
-    <!-- Painel Direito: lista de itinerarios -->
+    <!-- Painel Direito: lista de itinerários -->
     <div class="col-md-8 px-3 right-panel">
       <h3 class="mb-4 px- pt-3 text-white">Meus Itinerários</h3>
 
       {% if itineraries %}
-        <div class="row p-3">
-          {% for it in itineraries %}
-            <div class="col-md-6 mb-4">
-              <div class="card h-100 p-3" style="background-color:#2c2c2e;color:#fff;">
-                <div class="card-body">
-                  <h3 class="card-title">{{ it.destination }}</h3>
-                  <p class="card-text">
-                    {{ it.start_date }} → {{ it.end_date }}<br>
-                  </p>
+      <div class="row p-3">
+        {% for it in itineraries %}
+        <div class="col-md-6 mb-4">
+          <div class="card h-100 p-3" style="background-color:#2c2c2e;color:#fff;">
+            <div class="card-body">
+              <h3 class="card-title">{{ it.destination }}</h3>
+              <p class="card-text">
+                {{ it.start_date }} → {{ it.end_date }}<br>
+              </p>
 
-                  <!-- Botões adicionais: Excluir e Download PDF -->
-                  <div class="my-2">
-                    <!-- Form para exclusão -->
-                    <form method="POST" action="{% url 'delete_itinerary' it.id %}" style="display:inline;">
-                      {% csrf_token %}
-                  
-                      <!-- Botão Ver Detalhes -->
-                      <button class="btn btn-sm btn-outline-light"
-                              type="button"
-                              data-bs-toggle="modal"
-                              data-bs-target="#modalIt{{ it.id }}">
-                        Ver Detalhes
-                      </button>
-                  
-                      <!-- Link para download do PDF -->
-                      <a href="{% url 'export_itinerary_pdf' it.id %}"
-                         class="btn btn-sm btn-outline-light">
-                        Baixar PDF
-                      </a>
-                  
-                      <!-- Botão Excluir (no final) -->
-                      <button type="submit"
-                              class="btn btn-sm btn-outline-danger"
-                              onclick="return confirm('Tem certeza que deseja excluir este itinerário?')">
-                        Excluir
-                      </button>
-                    </form>
-                  </div>
-                  
-                  
+              <!-- Botões adicionais: Excluir e Download PDF -->
+              <div class="my-2">
+                <!-- Form para exclusão -->
+                <form method="POST" action="{% url 'delete_itinerary' it.id %}" style="display:inline;">
+                  {% csrf_token %}
+                  <!-- Botão Ver Detalhes -->
+                  <button class="btn btn-sm btn-outline-light"
+                          type="button"
+                          data-bs-toggle="modal"
+                          data-bs-target="#modalIt{{ it.id }}">
+                    Ver Detalhes
+                  </button>
 
-                  <!-- Botão que abre modal -->
-                  
-                </div>
+                  <!-- Link para download do PDF -->
+                  <a href="{% url 'export_itinerary_pdf' it.id %}" class="btn btn-sm btn-outline-light">
+                    Baixar PDF
+                  </a>
+
+                  <!-- Botão Excluir (no final) -->
+                  <button type="submit"
+                          class="btn btn-sm btn-outline-danger"
+                          onclick="return confirm('Tem certeza que deseja excluir este itinerário?')">
+                    Excluir
+                  </button>
+                </form>
               </div>
             </div>
+          </div>
+        </div>
 
-            <!-- MODAL de Detalhes -->
-            <div class="modal fade" id="modalIt{{ it.id }}" tabindex="-1"
-                 aria-labelledby="modalItLabel{{ it.id }}"
-                 aria-hidden="true">
-              <div class="modal-dialog modal-xl modal-dialog-centered">
-                <div class="modal-content" style="background-color:#202023;color:#fff;">
-                  <div class="modal-header">
-                    <h5 class="modal-title" id="modalItLabel{{ it.id }}">
-                      {{ it.destination }} - {{ it.start_date }} → {{ it.end_date }}
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white"
-                            data-bs-dismiss="modal"
-                            aria-label="Close"></button>
-                  </div>
-                  <div class="modal-body">
-                    <h5>Overview</h5>
-                    <div class="ai-text mb-3">{{ it.generated_text|markdownify }}</div>
+        <!-- MODAL de Detalhes -->
+        <div class="modal fade" id="modalIt{{ it.id }}" tabindex="-1" aria-labelledby="modalItLabel{{ it.id }}" aria-hidden="true">
+          <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content" style="background-color:#202023;color:#fff;">
+              <div class="modal-header">
+                <h5 class="modal-title" id="modalItLabel{{ it.id }}">
+                  {{ it.destination }} - {{ it.start_date }} → {{ it.end_date }}
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <h5>Overview</h5>
+                <div class="ai-text mb-3">{{ it.generated_text|markdownify }}</div>
 
-                    <h5>Days</h5>
+                <h5>Days</h5>
+                <!-- Abas (Tabs) para cada dia -->
+                <ul class="nav nav-tabs mt-3" id="daysTab{{ it.id }}" role="tablist">
+                  {% for d in it.days.all|dictsort:"day_number" %}
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if forloop.first %}active{% endif %}"
+                            id="day{{ it.id }}-{{ d.id }}-tab"
+                            data-bs-toggle="tab"
+                            data-bs-target="#day{{ it.id }}-{{ d.id }}"
+                            type="button"
+                            role="tab"
+                            aria-controls="day{{ it.id }}-{{ d.id }}"
+                            aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+                      Dia {{ d.day_number }}
+                    </button>
+                  </li>
+                  {% endfor %}
+                </ul>
+                <div class="tab-content mt-3" id="daysTabContent{{ it.id }}">
+                  {% for d in it.days.all|dictsort:"day_number" %}
+                  <div class="tab-pane fade {% if forloop.first %}show active{% endif %}"
+                       id="day{{ it.id }}-{{ d.id }}"
+                       role="tabpanel"
+                       aria-labelledby="day{{ it.id }}-{{ d.id }}-tab">
+                    <div class="result-card mb-3">
+                      <div class="ai-text">
+                        {{ d.generated_text|markdownify|safe }}
+                      </div>
 
-                    <!-- Abas (Tabs) para cada dia -->
-                    <ul class="nav nav-tabs mt-3" id="daysTab{{ it.id }}" role="tablist">
-                      {% for d in it.days.all|dictsort:"day_number" %}
-                        <li class="nav-item" role="presentation">
-                          <button class="nav-link {% if forloop.first %}active{% endif %}"
-                                  id="day{{ it.id }}-{{ d.id }}-tab"
-                                  data-bs-toggle="tab"
-                                  data-bs-target="#day{{ it.id }}-{{ d.id }}"
-                                  type="button"
-                                  role="tab"
-                                  aria-controls="day{{ it.id }}-{{ d.id }}"
-                                  aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
-                            Dia {{ d.day_number }}
-                          </button>
-                        </li>
-                      {% endfor %}
-                    </ul>
-                    <div class="tab-content mt-3" id="daysTabContent{{ it.id }}">
-                      {% for d in it.days.all|dictsort:"day_number" %}
-                        <div class="tab-pane fade {% if forloop.first %}show active{% endif %}"
-                             id="day{{ it.id }}-{{ d.id }}"
-                             role="tabpanel"
-                             aria-labelledby="day{{ it.id }}-{{ d.id }}-tab">
-                          
-                          <div class="result-card mb-3">
-                            <div class="ai-text">
-                              {{ d.generated_text|markdownify|safe }}
-                            </div>
-                            
-                            {% if d.places_visited %}
-                              <div class="mt-3">
-                                <strong>Lugares (Editar individualmente):</strong>
-                                <div id="day-places-{{d.id}}"></div>
-                                <script>
-                                  (function(){
-                                    var container = document.getElementById("day-places-{{d.id}}");
-                                    var rawData = `{{ d.places_visited|safe }}`; // string JSON
-                                    try {
-                                      var placesArr = JSON.parse(rawData);
-                                      if(Array.isArray(placesArr)){
-                                        var html = "";
-                                        placesArr.forEach(function(p, idx){
+                      {% if d.places_visited %}
+                      <div class="mt-3">
+                        <strong>Lugares (Editar individualmente):</strong>
+                        <div id="day-places-{{d.id}}"></div>
+                        <script>
+                          (function(){
+                              var container = document.getElementById("day-places-{{d.id}}");
+                              var rawData = `{{ d.places_visited|safe }}`;
+                              try {
+                                  var placesArr = JSON.parse(rawData);
+                                  if(Array.isArray(placesArr)){
+                                      var html = "";
+                                      placesArr.forEach(function(p, idx){
                                           var placeName = p.name || "Local desconhecido";
                                           // Botão de troca ♻️
                                           html += `
-                                            <div class="mt-2">
+                                          <div class="mt-2">
                                               ${idx+1}. ${placeName}
                                               <button class="btn btn-sm btn-link text-warning replace-place-btn"
                                                       data-dayid="{{d.id}}"
@@ -291,46 +256,43 @@
                                                       data-bs-toggle="modal"
                                                       data-bs-target="#replaceModal"
                                                       title="Trocar local">
-                                                🔄
+                                                  🔄
                                               </button>
-                                            </div>
+                                          </div>
                                           `;
-                                        });
-                                        container.innerHTML = html;
-                                      }
-                                    } catch(e){}
-                                  })();
-                                </script>
-                              </div>
-                            {% endif %}
-                          </div>
-
-                        </div>
-                      {% endfor %}
+                                      });
+                                      container.innerHTML = html;
+                                  }
+                              } catch(e){}
+                          })();
+                        </script>
+                      </div>
+                      {% endif %}
                     </div>
-
-                    <!-- MAPA -->
-                    <h5>Map</h5>
-                    <div id="map{{ it.id }}"
-                         data-lat="{{ it.lat }}"
-                         data-lng="{{ it.lng }}"
-                         data-markers='{{ it.markers_json|safe }}'
-                         style="height:400px; border:1px solid #3a3a3c; border-radius:6px;">
-                    </div>
-
                   </div>
-                  <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-light"
-                            data-bs-dismiss="modal">Fechar</button>
-                  </div>
+                  {% endfor %}
+                </div>
+
+                <!-- MAPA -->
+                <h5>Map</h5>
+                <div id="map{{ it.id }}"
+                     data-lat="{{ it.lat }}"
+                     data-lng="{{ it.lng }}"
+                     data-markers='{{ it.markers_json|safe }}'
+                     style="height:400px; border:1px solid #3a3a3c; border-radius:6px;">
                 </div>
               </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Fechar</button>
+              </div>
             </div>
-            <!-- FIM MODAL -->
-          {% endfor %}
+          </div>
         </div>
+        <!-- FIM MODAL -->
+        {% endfor %}
+      </div>
       {% else %}
-        <p class="text-white">Nenhum itinerário criado ainda...</p>
+      <p class="text-white">Nenhum itinerário criado ainda...</p>
       {% endif %}
     </div>
     <!-- /Painel Direito -->
@@ -353,9 +315,7 @@
           <input type="hidden" id="replaceIndex" name="place_index" value="">
           <div class="mb-3">
             <label for="replaceObservation" class="form-label">Observação / Preferência para o novo local</label>
-            <textarea class="form-control" id="replaceObservation" name="observation"
-                      rows="3"
-                      placeholder="Ex: Quero algo mais central, sem repetir lugares ou com comida típica"></textarea>
+            <textarea class="form-control" id="replaceObservation" name="observation" rows="3" placeholder="Ex: Quero algo mais central, sem repetir lugares ou com comida típica"></textarea>
           </div>
         </div>
         <div class="modal-footer">
@@ -371,7 +331,7 @@
 
 {% block extra_scripts %}
 <script>
-  function initAutocomplete() {
+function initAutocomplete() {
     // 1) Autocomplete no input de destino
     const destInput = document.getElementById("destination");
     if (destInput) {
@@ -395,81 +355,77 @@
       modal.addEventListener('shown.bs.modal', (event) => {
         const modalId = modal.getAttribute('id');
         if(modalId && modalId.startsWith("modalIt")){
-          const itineraryId = modalId.replace('modalIt','');
-          initMultipleMarkers(itineraryId);
+            const itineraryId = modalId.replace('modalIt','');
+            initMultipleMarkers(itineraryId);
         }
       });
     });
-  }
+}
 
-  function initMultipleMarkers(itineraryId) {
+function initMultipleMarkers(itineraryId) {
     const mapDiv = document.getElementById("map" + itineraryId);
     if (!mapDiv) return;
-  
+
     let markersData = [];
     try {
-      markersData = JSON.parse(mapDiv.dataset.markers);
+        markersData = JSON.parse(mapDiv.dataset.markers);
     } catch (e) {
-      console.warn("Não foi possível parsear markers JSON p/ itinerário ID=", itineraryId);
-      return;
+        console.warn("Não foi possível parsear markers JSON p/ itinerário ID=", itineraryId);
+        return;
     }
-  
+
     if (!markersData.length) {
-      console.warn("Nenhum marcador para itinerário ID=", itineraryId);
-      return;
+        console.warn("Nenhum marcador para itinerário ID=", itineraryId);
+        return;
     }
-  
+
     const initialCoords = { lat: markersData[0].lat, lng: markersData[0].lng };
     const map = new google.maps.Map(mapDiv, {
-      zoom: 12,
-      center: initialCoords,
+        zoom: 12,
+        center: initialCoords,
     });
-  
-    const bounds = new google.maps.LatLngBounds();
-  
-    markersData.forEach(markerObj => {
-      const position = { lat: markerObj.lat, lng: markerObj.lng };
-      new google.maps.Marker({
-        position: position,
-        map: map,
-        title: markerObj.name,
-      });
-      bounds.extend(position);
-    });
-  
-    if (markersData.length > 1) {
-      map.fitBounds(bounds);
-    } else {
-      map.setCenter(bounds.getCenter());
-      map.setZoom(12);
-    }
-  }
 
-  document.addEventListener("DOMContentLoaded", function(){
+    const bounds = new google.maps.LatLngBounds();
+
+    markersData.forEach(markerObj => {
+        const position = { lat: markerObj.lat, lng: markerObj.lng };
+        new google.maps.Marker({
+            position: position,
+            map: map,
+            title: markerObj.name,
+        });
+        bounds.extend(position);
+    });
+
+    if (markersData.length > 1) {
+        map.fitBounds(bounds);
+    } else {
+        map.setCenter(bounds.getCenter());
+        map.setZoom(12);
+    }
+}
+
+document.addEventListener("DOMContentLoaded", function(){
     var autoOpenId = "{{ new_itinerary_id|default:'' }}";
     if(autoOpenId){
-      var modalEl = document.getElementById("modalIt" + autoOpenId);
-      if(modalEl){
-        var bsModal = new bootstrap.Modal(modalEl, {});
-        bsModal.show();
-      }
+        var modalEl = document.getElementById("modalIt" + autoOpenId);
+        if(modalEl){
+            var bsModal = new bootstrap.Modal(modalEl, {});
+            bsModal.show();
+        }
     }
 
     document.body.addEventListener("click", function(e){
-      if(e.target && e.target.classList.contains("replace-place-btn")){
-        var dayId = e.target.getAttribute("data-dayid");
-        var placeIndex = e.target.getAttribute("data-index");
-        document.getElementById("replaceDayId").value = dayId;
-        document.getElementById("replaceIndex").value = placeIndex;
-        document.getElementById("replaceObservation").value = "";
-      }
+        if(e.target && e.target.classList.contains("replace-place-btn")){
+            var dayId = e.target.getAttribute("data-dayid");
+            var placeIndex = e.target.getAttribute("data-index");
+            document.getElementById("replaceDayId").value = dayId;
+            document.getElementById("replaceIndex").value = placeIndex;
+            document.getElementById("replaceObservation").value = "";
+        }
     });
-  });
+});
 </script>
 
-<script
-  src="https://maps.googleapis.com/maps/api/js?key={{ googlemaps_key }}&libraries=places&callback=initAutocomplete"
-  async
-  defer>
-</script>
+<script src="https://maps.googleapis.com/maps/api/js?key={{ googlemaps_key }}&libraries=places&callback=initAutocomplete" async defer></script>
 {% endblock %}
