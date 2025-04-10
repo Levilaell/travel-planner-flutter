@@ -14,6 +14,7 @@ GOOGLEMAPS_KEY = os.getenv('GOOGLEMAPS_KEY')
 DEBUG = os.getenv('DEBUG')
 ALLOWED_HOSTS = []
 
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.join(BASE_DIR, 'config/credentials.json')
 
 # Application definition
 

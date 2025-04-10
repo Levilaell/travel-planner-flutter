@@ -17,6 +17,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
 from dotenv import load_dotenv
+from google.auth.transport.requests import AuthorizedSession, Request
+from google.oauth2 import service_account
 from weasyprint import HTML
 
 from .forms import ItineraryForm, ReviewForm
@@ -457,14 +459,19 @@ def generate_day_text_gpt(itinerary, day, ordered_places, weather_info=None):
     day_title = f"Dia {day.day_number} - {date_formatted}"
     destination = itinerary.destination
 
-    if weather_info and weather_info.get("main"):
-        temp_min = round(weather_info["main"].get("temp_min", 0))
-        temp_max = round(weather_info["main"].get("temp_max", 0))
-        descriptions = [w["description"] for w in weather_info.get("weather", [])]
-        conditions = " / ".join(descriptions)
-        weather_str = f"{conditions}, entre {temp_min}°C e {temp_max}°C"
+    if weather_info.get("error"):
+        weather_str = "Erro ao obter clima"
+    elif weather_info.get("warning"):
+        weather_str = weather_info["warning"]
     else:
-        weather_str = "Sem dados de clima"
+        temp_min_raw = weather_info.get("temp_min")
+        temp_max_raw = weather_info.get("temp_max")
+        temp_min = round(temp_min_raw) if isinstance(temp_min_raw, (int, float)) else "N/A"
+        temp_max = round(temp_max_raw) if isinstance(temp_max_raw, (int, float)) else "N/A"
+        condition = weather_info.get("conditions", "Desconhecido")
+        desc = weather_info.get("description", "")
+        weather_str = f"{condition} ({desc}), entre {temp_min}°C e {temp_max}°C"
+
 
     visited_names = [loc['name'] for loc in ordered_places]
     visited_str = ", ".join(visited_names) if visited_names else "Nenhum"
@@ -611,9 +618,10 @@ def plan_one_day_itinerary(itinerary, day, already_visited=None):
     route_indices = find_optimal_route(locations, distance_matrix)
     route_ordered = [locations[i] for i in route_indices]
 
-    weather_data = get_weather_info(itinerary.destination)
-    raw_day_text = generate_day_text_gpt(itinerary, day, route_ordered, weather_info=weather_data)
+    # ✅ Substituição aqui: previsão do tempo do Google baseada na data e localização
+    weather_data = get_google_weather_forecast(day.date, itinerary.lat, itinerary.lng)
 
+    raw_day_text = generate_day_text_gpt(itinerary, day, route_ordered, weather_info=weather_data)
     verified_text = verify_and_update_places(raw_day_text, itinerary.lat, itinerary.lng, itinerary.destination)
 
     final_place_names = [loc["name"] for loc in route_ordered]
@@ -625,21 +633,56 @@ def plan_one_day_itinerary(itinerary, day, already_visited=None):
     return (verified_text, final_place_names)
 
 
-def get_weather_info(city_name):
-    api_key = os.getenv('OPENWEATHERMAP_KEY')
-    base_url = "https://api.openweathermap.org/data/2.5/weather"
-    params = {
-        'q': city_name,
-        'appid': api_key,
-        'units': 'metric',
-        'lang': 'pt',
-    }
+
+def get_google_weather_forecast(target_date, lat, lng):
+    """
+    Consulta a Google Weather API v1 (forecast.days:lookup) e retorna a previsão para a data exata, se disponível.
+    """
     try:
-        response = request_with_retry(base_url, params=params, max_attempts=3)
-        return response.json()
+        url = "https://weather.googleapis.com/v1/forecast/days:lookup"
+        params = {
+            "location.latitude": lat,
+            "location.longitude": lng,
+            "days": 10,  # busca até 10 dias à frente
+            "languageCode": "pt-BR",
+            "unitsSystem": "METRIC",
+            "key": settings.GOOGLEMAPS_KEY,
+        }
+
+        response = request_with_retry(url, params=params, max_attempts=3)
+        data = response.json()
+        logger.debug(f"[get_google_weather_forecast] Dados retornados: {data}")
+
+        forecast_days = data.get("forecastDays", [])
+        for day in forecast_days:
+            date_info = day.get("displayDate", {})
+            forecast_date = datetime(
+                year=int(date_info.get("year", 0)),
+                month=int(date_info.get("month", 0)),
+                day=int(date_info.get("day", 0))
+            ).date()
+
+            if forecast_date == target_date:
+                day_part = day.get("daytimeForecast", {})
+                weather_condition = day_part.get("weatherCondition", {})
+                # Use a descrição presente dentro de "description" para a condição
+                condition = weather_condition.get("description", {}).get("text", "Desconhecido")
+                # Para as temperaturas, use a chave "degrees"
+                temp_max = day.get("maxTemperature", {}).get("degrees")
+                temp_min = day.get("minTemperature", {}).get("degrees")
+
+                return {
+                    "date": forecast_date.isoformat(),
+                    "conditions": condition,
+                    "description": "",  # campo não utilizado separadamente
+                    "temp_min": temp_min,
+                    "temp_max": temp_max,
+                }
+
+        return {"warning": "Previsão não disponível para esta data (fora dos próximos 10 dias)."}
     except Exception as e:
-        logger.error(f"[get_weather_info] Erro ao obter informações de clima: {e}")
-        return None
+        logger.error(f"[get_google_weather_forecast] Erro ao buscar previsão: {e}")
+        return {"error": "Erro ao buscar previsão do tempo"}
 
 
 def get_cordinates_google_geocoding(address):
@@ -702,7 +745,8 @@ def replace_single_place_in_day(day, place_index, user_observation):
                 "lng": None
             })
 
-    weather_data = get_weather_info(itinerary.destination)
+    weather_data = get_google_weather_forecast(day.date, itinerary.lat, itinerary.lng)
+
     raw_day_text = generate_day_text_gpt(itinerary, day, current_places, weather_info=weather_data)
     verified_text = verify_and_update_places(raw_day_text, itinerary.lat, itinerary.lng, itinerary.destination)
 
