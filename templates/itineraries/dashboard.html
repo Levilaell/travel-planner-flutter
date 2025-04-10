@@ -7,7 +7,7 @@
 <div class="container-fluid" style="background-color:#2C2C2E">
   <div class="row full-height-row">
 
-    {# =====================  PAINEL ESQUERDO  ===================== #}
+    {# =====================  PAINEL ESQUERDO – Formulário  ===================== #}
     <div class="col-md-4 left-panel d-flex align-items-start flex-column p-4">
       <h3 class="text-white">Criar Novo Itinerário</h3>
 
@@ -23,7 +23,7 @@
       </div>
       {% endif %}
 
-      <form method="POST" action="{% url 'dashboard' %}" class="w-100 needs-validation" novalidate>
+      <form method="POST" action="{% url 'dashboard' %}" class="w-100 needs-validation" novalidate id="itineraryForm">
         {% csrf_token %}
 
         <!-- Destino -->
@@ -143,7 +143,7 @@
       </form>
     </div>
 
-    {# =====================  PAINEL DIREITO  ===================== #}
+    {# =====================  PAINEL DIREITO – Itinerários  ===================== #}
     <div class="col-md-8 px-3 right-panel">
       <h3 class="mb-4 pt-3 text-white">Meus Itinerários</h3>
 
@@ -216,22 +216,22 @@
                       {% if d.places_visited %}
                       <div class="mt-3">
                         <strong>Lugares (Editar individualmente):</strong>
-                        <div id="day-places-{{d.id}}"></div>
+                        <div id="day-places-{{ d.id }}"></div>
                         <script>
                           (function(){
-                            const container = document.getElementById("day-places-{{d.id}}");
+                            const container = document.getElementById("day-places-{{ d.id }}");
                             const rawData = `{{ d.places_visited|safe }}`;
                             try {
                               const arr = JSON.parse(rawData);
                               if (Array.isArray(arr)) {
                                 let html = "";
                                 arr.forEach((p, idx) => {
-                                  const placeName = p.name || "Local desconhecido";
+                                  const name = p.name || "Local desconhecido";
                                   html += `
                                     <div class="mt-2">
-                                      ${idx+1}. ${placeName}
+                                      ${idx+1}. ${name}
                                       <button class="btn btn-sm btn-link text-warning replace-place-btn"
-                                              data-dayid="{{d.id}}" data-index="${idx}"
+                                              data-dayid="{{ d.id }}" data-index="${idx}"
                                               data-bs-toggle="modal" data-bs-target="#replaceModal">
                                         🔄
                                       </button>
@@ -254,7 +254,7 @@
                      data-lat="{{ it.lat|floatformat:'6' }}"
                      data-lng="{{ it.lng|floatformat:'6' }}"
                      data-markers='{{ it.markers_json|escape }}'
-                     style="height:400px;border:1px solid #3a3a3c;border-radius:6px;"></div>
+                     style="height:400px; border:1px solid #3a3a3c; border-radius:6px;"></div>
               </div>
 
               <div class="modal-footer">
@@ -264,17 +264,17 @@
             </div>
           </div>
         </div>
-        {# ----------  /MODAL  ---------- #}
+        {# ----------  /MODAL DE DETALHES  ---------- #}
         {% endfor %}
       </div>
       {% else %}
-      <p class="text-white">Nenhum itinerário criado ainda...</p>
+        <p class="text-white">Nenhum itinerário criado ainda...</p>
       {% endif %}
     </div>
   </div>
 </div>
 
-{# ------------------  MODAL TROCA DE LUGAR  ------------------ #}
+{# ===================  MODAL TROCA DE LUGAR  =================== #}
 <div class="modal fade" id="replaceModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered" style="color:#fff;">
     <div class="modal-content" style="background-color:#202023;">
@@ -306,12 +306,13 @@
   </div>
 </div>
 
+{# ===================  LOADING OVERLAY  =================== #}
 <div id="loadingOverlay" style="display:none;">
   <div class="loading-backdrop"></div>
   <div class="loading-box text-center">
-    <div class="spinner-border text-light" role="status" style="width: 4rem; height: 4rem;"></div>
-    <div class="progress mt-4" style="height: 10px;">
-      <div id="loadingBar" class="progress-bar bg-primary" role="progressbar" style="width: 0%;"></div>
+    <div class="spinner-border text-light" role="status" style="width:4rem; height:4rem;"></div>
+    <div class="progress mt-4" style="height:10px;">
+      <div id="loadingBar" class="progress-bar bg-primary" role="progressbar" style="width:0%;"></div>
     </div>
     <p id="loadingText" class="mt-3 fs-5 text-white">Preparando roteiro...</p>
   </div>
@@ -319,79 +320,75 @@
 {% endblock %}
 
 {% block extra_scripts %}
-
 <script>
+document.addEventListener("DOMContentLoaded", () => {
+  // Loader animation
+  const form = document.getElementById("itineraryForm");
+  const overlay = document.getElementById("loadingOverlay");
+  const bar = document.getElementById("loadingBar");
+  const text = document.getElementById("loadingText");
 
-  document.addEventListener("DOMContentLoaded", () => {
-    const form = document.querySelector("form");
-    const overlay = document.getElementById("loadingOverlay");
-    const bar = document.getElementById("loadingBar");
-    const text = document.getElementById("loadingText");
-  
-    const loadingMessages = [
-      "Analisando destino...",
-      "Selecionando melhores locais...",
-      "Otimizando rotas...",
-      "Planejando experiências únicas...",
-      "Gerando roteiro perfeito..."
-    ];
-  
-    let progress = 0;
-    let interval;
-    let messageIndex = 0;
-  
-    function startLoadingAnimation() {
-      overlay.style.display = "flex";
-      progress = 0;
-      bar.style.width = "0%";
-      messageIndex = 0;
-      text.textContent = loadingMessages[0];
-  
-      interval = setInterval(() => {
-        if (progress < 100) {
-          progress += Math.random() * 5;
-          bar.style.width = `${Math.min(progress, 100)}%`;
-  
-          if (progress >= 20 && messageIndex < 1) {
-            text.textContent = loadingMessages[1];
-            messageIndex = 1;
-          } else if (progress >= 40 && messageIndex < 2) {
-            text.textContent = loadingMessages[2];
-            messageIndex = 2;
-          } else if (progress >= 60 && messageIndex < 3) {
-            text.textContent = loadingMessages[3];
-            messageIndex = 3;
-          } else if (progress >= 80 && messageIndex < 4) {
-            text.textContent = loadingMessages[4];
-            messageIndex = 4;
-          }
-        }
-      }, 400);
-    }
-  
-    if (form) {
-      form.addEventListener("submit", function () {
-        startLoadingAnimation();
-      });
-    }
-  });
-  
-</script>
-<script>
+  const messages = [
+    "Analisando destino...",
+    "Selecionando melhores locais...",
+    "Otimizando rotas...",
+    "Planejando experiências únicas...",
+    "Gerando roteiro perfeito..."
+  ];
+
+  let progress = 0;
+  let msgIndex = 0;
+  let interval;
+
+  function startLoadingAnimation() {
+    overlay.style.display = "flex";
+    progress = 0;
+    msgIndex = 0;
+    text.textContent = messages[0];
+    bar.style.width = "0%";
+
+    interval = setInterval(() => {
+      progress += Math.random() * 5;
+      bar.style.width = `${Math.min(progress, 100)}%`;
+
+      if (progress >= 20 && msgIndex < 1) {
+        text.textContent = messages[1];
+        msgIndex = 1;
+      }
+      if (progress >= 40 && msgIndex < 2) {
+        text.textContent = messages[2];
+        msgIndex = 2;
+      }
+      if (progress >= 60 && msgIndex < 3) {
+        text.textContent = messages[3];
+        msgIndex = 3;
+      }
+      if (progress >= 80 && msgIndex < 4) {
+        text.textContent = messages[4];
+        msgIndex = 4;
+      }
+    }, 400);
+  }
+
+  if (form) {
+    form.addEventListener("submit", function () {
+      startLoadingAnimation();
+    });
+  }
+});
+
 function initAutocomplete() {
   console.log("[initAutocomplete] Chamado: Autocomplete configurado no campo de destino.");
-
   const destInput = document.getElementById("destination");
   if (destInput) {
     const autocomplete = new google.maps.places.Autocomplete(destInput, { types: ['(cities)'] });
   }
 
-  // inicializa mapas quando o modal abre
   document.querySelectorAll('.modal.fade').forEach(modal => {
     modal.addEventListener('shown.bs.modal', () => {
       const id = modal.getAttribute('id');
       if (id && id.startsWith("modalIt")) {
-        const itineraryId = id.replace('modalIt','');
+        const itineraryId = id.replace('modalIt', '');
         initMultipleMarkers(itineraryId);
       }
     });
@@ -406,26 +403,28 @@ function initMultipleMarkers(itineraryId) {
   if (!rawMarkers) return;
 
   let markers = [];
-  try { markers = JSON.parse(rawMarkers); }
-  catch(e){ console.error("[initMultipleMarkers] JSON inválido:", e); return; }
-
+  try {
+    markers = JSON.parse(rawMarkers);
+  } catch(e) {
+    console.error("[initMultipleMarkers] JSON inválido:", e);
+    return;
+  }
   if (!markers.length) return;
 
   let lat = parseFloat(mapDiv.dataset.lat);
   let lng = parseFloat(mapDiv.dataset.lng);
   if (isNaN(lat) || isNaN(lng)) { lat = markers[0].lat; lng = markers[0].lng; }
 
-  const map = new google.maps.Map(mapDiv, { zoom: 12, center: {lat, lng} });
+  const map = new google.maps.Map(mapDiv, { zoom: 12, center: { lat, lng } });
   const bounds = new google.maps.LatLngBounds();
 
   markers.forEach(m => {
     if (m.lat && m.lng) {
-      const pos = {lat: m.lat, lng: m.lng};
+      const pos = { lat: m.lat, lng: m.lng };
       new google.maps.Marker({ position: pos, map, title: m.name });
       bounds.extend(pos);
     }
   });
-
   if (markers.length > 1) map.fitBounds(bounds);
 }
 
@@ -436,7 +435,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (modalEl) new bootstrap.Modal(modalEl).show();
   }
 
-  document.body.addEventListener("click", e => {
+  document.body.addEventListener("click", (e) => {
     if (e.target && e.target.classList.contains("replace-place-btn")) {
       document.getElementById("replaceDayId").value = e.target.dataset.dayid;
       document.getElementById("replaceIndex").value = e.target.dataset.index;
@@ -447,7 +446,4 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 
 <script src="https://maps.googleapis.com/maps/api/js?key={{ googlemaps_key }}&libraries=places&callback=initAutocomplete" async defer></script>
-
-
-
 {% endblock %}
