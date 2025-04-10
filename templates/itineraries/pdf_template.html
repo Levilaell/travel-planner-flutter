@@ -1,5 +1,6 @@
 {% load static %}
 {% load filters %}
+{% load markdownify %}
 
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -47,6 +48,12 @@
       line-height: 1.6;
       margin-top: 1em;
     }
+
+    a {
+      color: #1a0dab;
+      text-decoration: none;
+      word-break: break-all;   /* evita estouro da linha */
+    }
   </style>
 </head>
 <body>
@@ -62,15 +69,13 @@
     <p><strong>Extras:</strong> {{ itinerary.extras }}</p>
 
     <h3>Resumo Geral</h3>
-    <div class="text-block">{{ itinerary.generated_text|strip_markdown|safe }}</div>
+    <div class="text-block">{{ itinerary.generated_text|markdownify }}</div>
   </div>
 
   {% for d in itinerary.days.all|dictsort:"day_number" %}
     <div class="day-section">
       <h2>Dia {{ d.day_number }} - {{ d.date }}</h2>
-      <div class="text-block">
-        {{ d.generated_text|strip_markdown|safe }}
-      </div>
+      <div class="text-block">{{ d.generated_text|markdownify }}</div>
     </div>
   {% endfor %}
 
