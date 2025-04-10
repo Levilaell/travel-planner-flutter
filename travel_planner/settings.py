@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from django.urls import reverse_lazy # type: ignore
+from django.urls import reverse_lazy  # type: ignore
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -96,6 +96,23 @@ TEMPLATES = [
         },
     },
 ]
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        '': {
+            'handlers': ['console'],
+            'level': 'DEBUG',  # ou INFO
+        },
+    },
+}
+
 
 WSGI_APPLICATION = 'travel_planner.wsgi.application'
 
