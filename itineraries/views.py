@@ -1,8 +1,11 @@
+# views.py
+
 import base64
 import json
 import logging
 import os
 import time
+import urllib.parse
 from datetime import timedelta
 from urllib.parse import quote
 
@@ -10,7 +13,7 @@ import openai
 import requests
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
@@ -255,3 +258,40 @@ def replace_place_view(request):
         return redirect(f"{reverse('dashboard')}?new_itinerary_id={itinerary.id}")
 
     return redirect('dashboard')
+
+
+
+def proxy_google_places(request):
+    encoded_url = request.GET.get("url")
+    if not encoded_url or "maps.googleapis.com/maps/api/place" not in encoded_url:
+        return JsonResponse({"error": "URL inválida ou ausente"}, status=400)
+
+    # Decodifica a URL para remover a duplo codificação
+    url = urllib.parse.unquote(encoded_url)
+    try:
+        response = requests.get(url, timeout=10)
+        return JsonResponse(response.json(), safe=False)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+
+def google_photo_proxy(request):
+    photo_ref = request.GET.get("photo_ref")
+    if not photo_ref:
+        return HttpResponse("Parâmetro ausente", status=400)
+
+    url = f"https://maps.googleapis.com/maps/api/place/photo"
+    params = {
+        "photoreference": photo_ref,
+        "maxwidth": 600,
+        "key": settings.GOOGLEMAPS_KEY,
+    }
+
+    try:
+        response = requests.get(url, params=params, stream=True)
+        if response.status_code == 200:
+            return HttpResponse(response.content, content_type=response.headers.get("Content-Type"))
+        return HttpResponse("Erro ao buscar imagem", status=500)
+    except Exception as e:
+        return HttpResponse(f"Erro interno: {e}", status=500)

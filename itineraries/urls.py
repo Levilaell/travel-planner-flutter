@@ -11,6 +11,8 @@ urlpatterns = [
     # Rota p/ troca de lugar
     path('replace-place/', views.replace_place_view, name='replace_place'),
 
+    path("proxy_google_places/", views.proxy_google_places, name="proxy_google_places"),
+    path("proxy_google_photo/", views.google_photo_proxy, name="proxy_google_photo"),
 
 
     # NOVAS ROTAS:

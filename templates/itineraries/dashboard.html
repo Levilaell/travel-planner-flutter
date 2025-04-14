@@ -170,7 +170,8 @@
                       {% if d.places_visited %}
                       <div class="mt-3">
                         <strong>Lugares (Editar individualmente):</strong>
-                        <div id="day-places-{{ d.id }}"></div>
+                        <div id="day-places-{{ d.id }}" data-places='{{ d.places_visited|safe }}'></div>
+
                         <script>
                           (function(){
                             const container = document.getElementById("day-places-{{ d.id }}");
@@ -294,6 +295,17 @@ document.addEventListener("DOMContentLoaded", () => {
   let msgIndex = 0;
   let interval;
 
+  document.querySelectorAll('[id^="photos-for-day-"]').forEach(div => {
+    const dayId = div.id.replace("photos-for-day-", "");
+    const dataElement = document.getElementById("day-places-" + dayId);
+    if (dataElement) {
+      const raw = dataElement.dataset.places;
+      if (raw) {
+        fetchPhotosForPlaces(dayId, raw);
+      }
+    }
+  });
+
   function startLoadingAnimation() {
     overlay.style.display = "flex";
     progress = 0;
@@ -330,6 +342,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+
+
 
 function initAutocomplete() {
   console.log("[initAutocomplete] Chamado: Autocomplete configurado no campo de destino.");
@@ -410,17 +424,25 @@ function fetchPhotosForPlaces(dayId, placesJson) {
     return;
   }
 
-  places.forEach((place, index) => {
-    const query = encodeURIComponent(place.name + ", " + "{{ it.destination }}");
+  // Obtém o destino com base na estrutura do modal
+  const destination = document.querySelector(`#day-places-${dayId}`)
+    ?.closest(".modal-content")
+    ?.querySelector(".modal-title")
+    ?.textContent
+    ?.split(" - ")[0] || "";
 
-    const url = `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${query}&inputtype=textquery&fields=photos,place_id&key={{ googlemaps_key }}`;
+  places.forEach((place) => {
+    const query = `${place.name}, ${destination}`;
+    const googleUrl = `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${encodeURIComponent(query)}&inputtype=textquery&fields=photos&key={{ googlemaps_key }}`;
+    const searchUrl = "{% url 'proxy_google_places' %}?url=" + encodeURIComponent(googleUrl);
 
-    fetch("/proxy_google_places/?url=" + encodeURIComponent(url))
+    fetch(searchUrl)
       .then(res => res.json())
       .then(data => {
-        if (data.candidates && data.candidates[0] && data.candidates[0].photos) {
-          const photoRef = data.candidates[0].photos[0].photo_reference;
-          const photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photoRef}&key={{ googlemaps_key }}`;
+        const candidate = data.candidates?.[0];
+        if (candidate?.photos?.[0]?.photo_reference) {
+          const photoRef = candidate.photos[0].photo_reference;
+          const photoUrl = "{% url 'proxy_google_photo' %}?photo_ref=" + photoRef;
           const html = `
             <div class="mb-3">
               <img src="${photoUrl}" alt="Foto de ${place.name}" class="img-fluid rounded shadow">
@@ -432,11 +454,7 @@ function fetchPhotosForPlaces(dayId, placesJson) {
   });
 }
 
-document.addEventListener("DOMContentLoaded", function () {
-  {% for d in it.days.all %}
-    fetchPhotosForPlaces({{ d.id }}, `{{ d.places_visited|safe }}`);
-  {% endfor %}
-});
+
 
 </script>
 
