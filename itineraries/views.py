@@ -1,5 +1,3 @@
-# views.py
-
 import base64
 import json
 import logging
@@ -76,30 +74,25 @@ def build_markers_json(itinerary):
 
 @login_required
 def dashboard_view(request):
+    interests = ["Cultura", "Gastronomia", "Aventura", "Natureza", "Compras", "História", "Romance"]
+
     if request.method == 'POST':
         form = ItineraryForm(request.POST)
         if form.is_valid():
-            # 1) Criar itinerário
             itinerary = form.save(commit=False)
             itinerary.user = request.user
             selected_interests = request.POST.getlist('interests_list')
             itinerary.interests = ', '.join(selected_interests)
             itinerary.save()
-            logger.info(f"[dashboard_view] Novo itinerário criado ID={itinerary.id}, destino={itinerary.destination}")
 
-            # 2) Coordenadas do destino principal
             lat, lng = get_cordinates_google_geocoding(itinerary.destination)
             itinerary.lat = lat
             itinerary.lng = lng
-            logger.info(f"[dashboard_view] Geocoding => lat={lat}, lng={lng}")
 
-            # 3) Texto IA (overview)
             overview = generate_itinerary_overview(itinerary)
             itinerary.generated_text = overview
             itinerary.save()
-            logger.info(f"[dashboard_view] Overview gerado p/ itinerário {itinerary.id}")
 
-            # 4) Criar Days (um por data)
             current_date = itinerary.start_date
             day_number = 1
             visited_places_list = []
@@ -109,8 +102,6 @@ def dashboard_view(request):
                     day_number=day_number,
                     date=current_date
                 )
-                logger.info(f"[dashboard_view] Criando Day={day.id} => data={current_date}")
-
                 day_text, final_places = plan_one_day_itinerary(itinerary, day, visited_places_list)
                 day.generated_text = day_text
                 day.save()
@@ -121,8 +112,6 @@ def dashboard_view(request):
 
             return redirect(f"{reverse('dashboard')}?new_itinerary_id={itinerary.id}")
         else:
-            # Form inválido => exibir erros
-            logger.warning("[dashboard_view] Form inválido ao criar itinerário.")
             itineraries = Itinerary.objects.filter(user=request.user).order_by('-created_at')
             for it in itineraries:
                 it.markers_json = build_markers_json(it)
@@ -130,6 +119,7 @@ def dashboard_view(request):
                 'form': form,
                 'itineraries': itineraries,
                 'googlemaps_key': settings.GOOGLEMAPS_KEY,
+                'interests': interests,
             })
     else:
         form = ItineraryForm()
@@ -137,12 +127,12 @@ def dashboard_view(request):
         for it in itineraries:
             it.markers_json = build_markers_json(it)
         new_itinerary_id = request.GET.get('new_itinerary_id', '')
-        logger.debug(f"[dashboard_view] Render GET. Tem new_itinerary_id? {new_itinerary_id}")
         return render(request, 'itineraries/dashboard.html', {
             'form': form,
             'itineraries': itineraries,
             'googlemaps_key': settings.GOOGLEMAPS_KEY,
             'new_itinerary_id': new_itinerary_id,
+            'interests': interests,
         })
 
 

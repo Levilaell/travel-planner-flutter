@@ -241,6 +241,11 @@ footer {
     border-radius: 8px;
 }
 
+#extras::placeholder, #destination::placeholder, #budget::placeholder, #travelers::placeholder {
+    color: white;
+    opacity: 0.5; /* Garante visibilidade total */
+  }
+
 #loadingOverlay {
     position: fixed;
     top: 0;

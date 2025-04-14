@@ -1,7 +1,9 @@
 # forms.py
 
 from django import forms
-from .models import Itinerary, Day, Review
+
+from .models import Day, Itinerary, Review
+
 
 class ItineraryForm(forms.ModelForm):
     class Meta:
@@ -12,12 +14,9 @@ class ItineraryForm(forms.ModelForm):
             'end_date',
             'budget',
             'travelers',
-            'interests',
-            'food_preferences',
             'extras',
-            'transport_mode',
-            'interest_places',
         ]
+
 
 class DayForm(forms.ModelForm):
     class Meta:

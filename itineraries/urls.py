@@ -11,8 +11,7 @@ urlpatterns = [
     # Rota p/ troca de lugar
     path('replace-place/', views.replace_place_view, name='replace_place'),
 
-    # Exemplo de review
-    path('add-review/<int:pk>/', views.add_review_view, name='add_review'),
+
 
     # NOVAS ROTAS:
     path('delete-itinerary/<int:pk>/', views.delete_itinerary_view, name='delete_itinerary'),

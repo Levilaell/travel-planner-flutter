@@ -25,122 +25,74 @@
 
       <form method="POST" action="{% url 'dashboard' %}" class="w-100 needs-validation" novalidate id="itineraryForm">
         {% csrf_token %}
-
+      
         <!-- Destino -->
         <div class="mb-3">
           <label for="destination" class="form-label">Destino *</label>
           <input type="text" class="form-control" id="destination" name="destination"
                  placeholder="Ex: Natal, Brasil" required>
-          <div class="form-text">Informe uma cidade/país ou região principal que deseja visitar.</div>
+          <div class="form-text">Informe uma cidade, país ou região que deseja visitar.</div>
         </div>
-
+      
         <!-- Datas -->
         <div class="row g-2 mb-3">
           <div class="col">
-            <label for="startDate" class="form-label">Data Início *</label>
+            <label for="startDate" class="form-label">Data de Início *</label>
             <input type="date" class="form-control" id="startDate" name="start_date" required>
           </div>
           <div class="col">
-            <label for="endDate" class="form-label">Data Final *</label>
+            <label for="endDate" class="form-label">Data de Término *</label>
             <input type="date" class="form-control" id="endDate" name="end_date" required>
           </div>
         </div>
-
-        <!-- Orçamento e Viajantes -->
-        <div class="row g-2 mb-3">
-          <div class="col">
-            <label for="budget" class="form-label">Orçamento (R$) *</label>
-            <input type="number" class="form-control" id="budget" name="budget" step="0.01"
-                   placeholder="Ex: 2000" required>
-            <div class="form-text">Valor total estimado para a viagem.</div>
-          </div>
-          <div class="col">
-            <label for="travelers" class="form-label">Nº de Viajantes</label>
-            <input type="number" class="form-control" id="travelers" name="travelers" min="1" value="1">
-          </div>
+      
+        <!-- Orçamento -->
+        <div class="mb-3">
+          <label for="budget" class="form-label">Orçamento Total (R$)</label>
+          <input type="number" class="form-control" id="budget" name="budget" step="0.01"
+                 placeholder="Ex: 2000">
+          <div class="form-text">Quanto pretende gastar no total da viagem?</div>
         </div>
-
+      
+        <!-- Nº de viajantes -->
+        <div class="mb-3">
+          <label for="travelers" class="form-label">Número de Viajantes *</label>
+          <input type="number" class="form-control" id="travelers" name="travelers" min="1" value="1">
+        </div>
+      
         <!-- Interesses -->
         <div class="mb-3">
-          <label class="form-label d-block">Interesses Principais</label>
-          <div class="d-flex flex-wrap gap-3">
-            <div class="form-check">
-              <input class="form-check-input" type="checkbox" id="interestCultura"
-                     name="interests_list" value="Cultura">
-              <label class="form-check-label" for="interestCultura">Cultura</label>
+          <label class="form-label d-block">Interesses na Viagem</label>
+          <div class="row">
+            {% for interest in interests %}
+            <div class="col-md-6">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="interest{{ interest }}"
+                       name="interests_list" value="{{ interest }}">
+                <label class="form-check-label" for="interest{{ interest }}">{{ interest }}</label>
+              </div>
             </div>
-            <div class="form-check">
-              <input class="form-check-input" type="checkbox" id="interestGastronomia"
-                     name="interests_list" value="Gastronomia">
-              <label class="form-check-label" for="interestGastronomia">Gastronomia</label>
-            </div>
-            <div class="form-check">
-              <input class="form-check-input" type="checkbox" id="interestAventura"
-                     name="interests_list" value="Aventura">
-              <label class="form-check-label" for="interestAventura">Aventura</label>
-            </div>
+            {% endfor %}
           </div>
-          <div class="form-text">
-            Selecione quantos quiser: cultura, gastronomia, aventura, compras, natureza, etc.
-          </div>
+          <div class="form-text">Você pode escolher vários temas que deseja focar durante a viagem.</div>
         </div>
-
-        <!-- Alimentação -->
+    
+      
+        
+      
+        <!-- Campo extra opcional -->
         <div class="mb-3">
-          <label for="foodPreferences" class="form-label">Alimentação</label>
-          <select class="form-select" id="foodPreferences" name="food_preferences">
-            <option value="nenhuma">Nenhuma Restrição</option>
-            <option value="vegana">Vegana</option>
-            <option value="vegetariana">Vegetariana</option>
-            <option value="kosher">Kosher</option>
-            <option value="halal">Halal</option>
-          </select>
-        </div>
-
-        <!-- Transporte -->
-        <div class="mb-3">
-          <label class="form-label">Modo de Transporte</label>
-          <select class="form-select" name="transport_mode">
-            <option value="driving">Carro</option>
-            <option value="walking">Caminhada</option>
-            <option value="bicycling">Bicicleta</option>
-            <option value="transit">Transp. Público</option>
-          </select>
-        </div>
-
-        <!-- Tipo de Viagem -->
-        <div class="mb-3">
-          <label class="form-label">Tipo de Viagem</label>
-          <select class="form-select" name="trip_type">
-            <option value="turismo">Turismo Clássico</option>
-            <option value="negocios">Negócios</option>
-            <option value="lua_de_mel">Lua de Mel</option>
-            <option value="aventura">Viagem de Aventura</option>
-            <option value="gastronomica">Viagem Gastronômica</option>
-          </select>
-        </div>
-
-        <!-- Locais de Interesse -->
-        <div class="mb-3">
-          <label for="interestPlaces" class="form-label">Locais de Interesse</label>
-          <textarea class="form-control" id="interestPlaces" name="interest_places" rows="2"
-                    placeholder="Ex: Ponto X, Museu Y, Parque Z"></textarea>
-          <div class="form-text">
-            Se já tiver alguma lista de locais que quer muito visitar, informe aqui.
-          </div>
-        </div>
-
-        <!-- Extras -->
-        <div class="mb-3">
-          <label for="extras" class="form-label">Observações / Extras</label>
+          <label for="extras" class="form-label">Algo que devemos considerar?</label>
           <textarea class="form-control" id="extras" name="extras" rows="3"
-                    placeholder="Ex: Acessibilidade, hospedagem 5 estrelas, etc."></textarea>
+                    placeholder="Ex: Acessibilidade, evitar praias, hotéis 4 estrelas, etc."
+                    style="::placeholder { color: white; }"></textarea>
         </div>
-
+      
         <div class="text-center">
           <button type="submit" class="btn btn-primary w-100 btn-lg shadow-sm">Gerar Roteiro</button>
         </div>
       </form>
+      
     </div>
 
     {# =====================  PAINEL DIREITO – Itinerários  ===================== #}
@@ -212,6 +164,8 @@
                        id="day{{ it.id }}-{{ d.id }}" role="tabpanel">
                     <div class="result-card mb-3">
                       <div class="ai-text">{{ d.generated_text|markdownify|safe }}</div>
+                      <div class="places-photo-gallery" id="photos-for-day-{{ d.id }}"></div>
+
 
                       {% if d.places_visited %}
                       <div class="mt-3">
@@ -443,6 +397,47 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+
+function fetchPhotosForPlaces(dayId, placesJson) {
+  const container = document.getElementById("photos-for-day-" + dayId);
+  if (!container) return;
+
+  let places;
+  try {
+    places = JSON.parse(placesJson);
+  } catch {
+    console.warn("placesJson inválido:", placesJson);
+    return;
+  }
+
+  places.forEach((place, index) => {
+    const query = encodeURIComponent(place.name + ", " + "{{ it.destination }}");
+
+    const url = `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${query}&inputtype=textquery&fields=photos,place_id&key={{ googlemaps_key }}`;
+
+    fetch("/proxy_google_places/?url=" + encodeURIComponent(url))
+      .then(res => res.json())
+      .then(data => {
+        if (data.candidates && data.candidates[0] && data.candidates[0].photos) {
+          const photoRef = data.candidates[0].photos[0].photo_reference;
+          const photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photoRef}&key={{ googlemaps_key }}`;
+          const html = `
+            <div class="mb-3">
+              <img src="${photoUrl}" alt="Foto de ${place.name}" class="img-fluid rounded shadow">
+            </div>`;
+          container.insertAdjacentHTML("beforeend", html);
+        }
+      })
+      .catch(err => console.error("Erro ao buscar foto:", err));
+  });
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  {% for d in it.days.all %}
+    fetchPhotosForPlaces({{ d.id }}, `{{ d.places_visited|safe }}`);
+  {% endfor %}
+});
+
 </script>
 
 <script src="https://maps.googleapis.com/maps/api/js?key={{ googlemaps_key }}&libraries=places&callback=initAutocomplete" async defer></script>

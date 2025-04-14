@@ -301,15 +301,23 @@ Data: {itinerary.start_date} a {itinerary.end_date}
 Orçamento: {itinerary.budget}
 Viajantes: {itinerary.travelers}
 Interesses: {itinerary.interests}
-Preferências Alimentares: {itinerary.food_preferences}
 Extras: {itinerary.extras}
-Modo de Transporte: {itinerary.transport_mode}
-Locais de Interesse: {itinerary.interest_places}
 
-A resposta deve ser no seguinte padrão (em português, mantendo um tom amigável e coeso):
+A resposta deve ser no seguinte padrão (mantendo um tom amigável e coeso):
 
-Viagem a X - Visão Geral
-[descrição...]
+Viagem a Paris - Visão Geral
+
+Prepare-se para uma experiência inesquecível na encantadora cidade de Paris, França, no dia 15 de abril de 2025! Com um orçamento de 2000 reais, você terá a oportunidade de explorar a rica cultura, a deliciosa gastronomia e os icônicos pontos turísticos que a capital francesa tem a oferecer. 
+
+Sua jornada começará com a visita à famosa Torre Eiffel, onde poderá admirar a vista deslumbrante da cidade. Em seguida, não perca a chance de passear pelo charmoso bairro de Montmartre, conhecido por sua atmosfera artística e pelas lindas ruas de paralelepípedos. A Basílica de Sacré-Cœur, que se ergue majestosa no topo da colina, é uma parada obrigatória.
+
+Para os amantes da arte, o Museu do Louvre é um verdadeiro paraíso, abrigando obras-primas como a Monalisa e a Vênus de Milo. Reserve um tempo para se perder nas suas galerias e desfrutar da impressionante arquitetura do edifício.
+
+A gastronomia parisiense também merece destaque! Explore os bistrôs locais e experimente pratos tradicionais como croissants, quiches e, claro, macarons. Uma refeição em um café à beira do Sena pode ser uma forma perfeita de relaxar e absorver a atmosfera vibrante da cidade.
+
+Além disso, considere um passeio de barco pelo rio Sena, proporcionando uma perspectiva única dos monumentos e pontes de Paris. À noite, o espetáculo da cidade iluminada é simplesmente mágico e cria memórias que durarão para sempre.
+
+Com um itinerário bem planejado e um olhar atento para os detalhes, sua viagem a Paris será uma combinação perfeita de exploração, cultura e sabor. Prepare-se para descobrir os encantos da Cidade Luz!
 """
 
     # Chamada OpenAI com retry
@@ -317,7 +325,7 @@ Viagem a X - Visão Geral
         messages=[{"role": "user", "content": prompt}],
         model="gpt-4o-mini",
         temperature=0.8,
-        max_tokens=1500,
+        max_tokens=6000,
         max_attempts=3
     )
     return response.choices[0].message["content"]
@@ -330,13 +338,12 @@ def suggest_places_gpt(itinerary, day_number, already_visited):
 Você é um planejador de viagens especializado no destino {itinerary.destination}.
 Para o dia {day_number} da viagem, considerando:
 - Interesses: {itinerary.interests}
-- Preferências Alimentares: {itinerary.food_preferences}
 - Orçamento: {itinerary.budget}
 - Viajantes: {itinerary.travelers}
 - Locais já visitados em dias anteriores: {visited_str}
 
-Gere uma lista de 6 locais interessantes e reais para visitar neste dia (desde a manhã até a noite), SEM repetir lugares já visitados.
-Certifique-se de que os locais sugeridos existam de fato e sejam facilmente verificados no Google Maps.
+Gere uma lista de 6 locais interessantes e REAIS para visitar neste dia (desde a manhã até a noite, considerando lugar para almoçar em horário de almoço, pontos turísticos de tarde, etc), SEM repetir lugares já visitados.
+Certifique-se de que os locais sugeridos existam de fato, que sejam facilmente verificados no Google Maps e que tenham uma logística coesa para o turista.
 
 Responda em formato JSON, assim:
 
@@ -350,12 +357,14 @@ Responda em formato JSON, assim:
 ]
 
 Apenas retorne a lista, sem texto adicional.
+
+Obs: Cuidado para não indicar lugares perigosos, como favelas, etc.
 """
     response = openai_chatcompletion_with_retry(
         messages=[{"role": "user", "content": prompt}],
         model="gpt-4o-mini",
         temperature=0.8,
-        max_tokens=1000,
+        max_tokens=6000,
         max_attempts=3
     )
     content = response.choices[0].message["content"]
@@ -484,7 +493,6 @@ Gere um roteiro detalhado para o dia, no seguinte formato:
 📍 Roteiro Detalhado para um Dia em {destination}
 📅 Data: {date_formatted}
 🌤️ Previsão do Tempo: {weather_str}
-🚗 Transporte Principal: {itinerary.transport_mode}
 🍽️ Destaques Gastronômicos: (exemplos de comida típica)
 📸 Locais Visitados: {visited_str}
 
@@ -508,7 +516,7 @@ Responda em português mantendo um tom amigável.
         messages=[{"role": "user", "content": prompt}],
         model="gpt-4o-mini",
         temperature=0.8,
-        max_tokens=3000,
+        max_tokens=6000,
         max_attempts=3
     )
 
@@ -765,7 +773,6 @@ Preciso substituir um local que não agradou.
 Detalhes:
 - Dia da viagem: {day_number}
 - Interesses: {itinerary.interests}
-- Preferências Alimentares: {itinerary.food_preferences}
 - Orçamento: {itinerary.budget}
 - Viajantes: {itinerary.travelers}
 - Locais já visitados (não repetir): {visited_str}
@@ -779,7 +786,7 @@ Responda apenas com o nome do lugar, sem texto adicional.
             messages=[{"role": "user", "content": prompt}],
             model="gpt-4o-mini",
             temperature=0.8,
-            max_tokens=300,
+            max_tokens=6000,
             max_attempts=3
         )
         content = response.choices[0].message["content"].strip()
