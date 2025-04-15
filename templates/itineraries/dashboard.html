@@ -56,7 +56,7 @@
       
         <!-- Nº de viajantes -->
         <div class="mb-3">
-          <label for="travelers" class="form-label">Número de Viajantes *</label>
+          <label for="travelers" class="form-label">Número de Viajantes</label>
           <input type="number" class="form-control" id="travelers" name="travelers" min="1" value="1">
         </div>
       
@@ -163,7 +163,9 @@
                   <div class="tab-pane fade {% if forloop.first %}show active{% endif %}"
                        id="day{{ it.id }}-{{ d.id }}" role="tabpanel">
                     <div class="result-card mb-3">
-                      <div class="ai-text">{{ d.generated_text|markdownify|safe }}</div>
+                      <div class="ai-text" data-dayid="{{ d.id }}">{{ d.generated_text|markdownify|safe }}
+                      </div>
+                      {# opcional: fallback, pode deixar ou remover #}
                       <div class="places-photo-gallery" id="photos-for-day-{{ d.id }}"></div>
 
 
@@ -413,46 +415,70 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function fetchPhotosForPlaces(dayId, placesJson) {
-  const container = document.getElementById("photos-for-day-" + dayId);
-  if (!container) return;
-
   let places;
-  try {
-    places = JSON.parse(placesJson);
-  } catch {
-    console.warn("placesJson inválido:", placesJson);
-    return;
-  }
+  try { places = JSON.parse(placesJson); } catch { return; }
 
-  // Obtém o destino com base na estrutura do modal
-  const destination = document.querySelector(`#day-places-${dayId}`)
-    ?.closest(".modal-content")
-    ?.querySelector(".modal-title")
-    ?.textContent
-    ?.split(" - ")[0] || "";
+  const destination =
+    document.querySelector(`.ai-text[data-dayid="${dayId}"]`)
+            ?.closest(".modal-content")
+            ?.querySelector(".modal-title")
+            ?.textContent
+            ?.split(" - ")[0] || "";
 
-  places.forEach((place) => {
+  places.forEach(place => {
     const query = `${place.name}, ${destination}`;
-    const googleUrl = `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${encodeURIComponent(query)}&inputtype=textquery&fields=photos&key={{ googlemaps_key }}`;
-    const searchUrl = "{% url 'proxy_google_places' %}?url=" + encodeURIComponent(googleUrl);
+    const googleUrl =
+      `https://maps.googleapis.com/maps/api/place/findplacefromtext/json` +
+      `?input=${encodeURIComponent(query)}` +
+      `&inputtype=textquery&fields=photos&key={{ googlemaps_key }}`;
 
-    fetch(searchUrl)
-      .then(res => res.json())
+    fetch("{% url 'proxy_google_places' %}?url=" + encodeURIComponent(googleUrl))
+      .then(r => r.json())
       .then(data => {
-        const candidate = data.candidates?.[0];
-        if (candidate?.photos?.[0]?.photo_reference) {
-          const photoRef = candidate.photos[0].photo_reference;
-          const photoUrl = "{% url 'proxy_google_photo' %}?photo_ref=" + photoRef;
-          const html = `
-            <div class="mb-3">
-              <img src="${photoUrl}" alt="Foto de ${place.name}" class="img-fluid rounded shadow">
-            </div>`;
-          container.insertAdjacentHTML("beforeend", html);
+        let photoUrl;
+
+        // 1️⃣ tenta Google
+        const ref = data.candidates?.[0]?.photos?.[0]?.photo_reference;
+        if (ref) {
+          photoUrl = "{% url 'proxy_google_photo' %}?photo_ref=" + ref;
+        } else {
+          // 2️⃣ fallback Unsplash (não requer chave)
+          photoUrl =
+            `https://source.unsplash.com/600x400/?${encodeURIComponent(place.name + ' ' + destination)}`;
         }
+
+        insertPhotoAfterPlace(dayId, place.name, photoUrl);
       })
-      .catch(err => console.error("Erro ao buscar foto:", err));
+      .catch(err => console.error("Foto:", err));
   });
 }
+
+function insertPhotoAfterPlace(dayId, placeName, photoUrl) {
+  const aiDiv = document.querySelector(`.ai-text[data-dayid="${dayId}"]`);
+  if (!aiDiv) return;
+
+  const blocks = aiDiv.querySelectorAll("p, li");
+  for (const el of blocks) {
+    if (el.textContent.toLowerCase().includes(placeName.toLowerCase())) {
+      el.insertAdjacentHTML(
+        "afterend",
+        `<img src="${photoUrl}" alt="Foto de ${placeName}" class="place-photo">`
+      );
+      return;
+    }
+  }
+
+  // fallback: fim do dia
+  const fallback = document.getElementById("photos-for-day-" + dayId);
+  if (fallback) {
+    fallback.insertAdjacentHTML(
+      "beforeend",
+      `<img src="${photoUrl}" class="place-photo">`
+    );
+  }
+}
+
+
 
 
 

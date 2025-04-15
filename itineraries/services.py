@@ -509,6 +509,7 @@ Ordem de Locais a Visitar:
 
     prompt += """
 No final, inclua uma 'DICA FINAL' sobre o destino.
+
 Responda em português mantendo um tom amigável.
 """
 
