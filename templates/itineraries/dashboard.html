@@ -278,6 +278,49 @@
 
 {% block extra_scripts %}
 <script>
+  /* 🔄 1. Função utilitária para remover acentos */
+  function normalizeText(str) {
+    return str
+      .normalize("NFD")                 // separa letras de acentos
+      .replace(/[\u0300-\u036f]/g, "") // remove acentos
+      .toLowerCase()
+      .trim();
+  }
+  
+  /* 🔄 2. Substitua a função inteira por esta versão */
+  function insertPhotoAfterPlace(dayId, placeName, photoUrl) {
+    const aiDiv = document.querySelector(`.ai-text[data-dayid="${dayId}"]`);
+    if (!aiDiv) return;
+  
+    const target = normalizeText(placeName);
+    const blocks = aiDiv.querySelectorAll("p, li");
+  
+    for (const el of blocks) {
+      if (normalizeText(el.textContent).includes(target)) {
+        /* evita duplicar caso já tenha imagem */
+        if (!el.nextElementSibling || !el.nextElementSibling.classList?.contains("place-photo")) {
+          el.insertAdjacentHTML(
+            "afterend",
+            `<img src="${photoUrl}"
+                  alt="Foto de ${placeName}"
+                  class="place-photo">`
+          );
+        }
+        return; // encontrou, sai da função
+      }
+    }
+  
+    /* fallback se não achar o parágrafo */
+    const fallback = document.getElementById("photos-for-day-" + dayId);
+    if (fallback) {
+      fallback.insertAdjacentHTML(
+        "beforeend",
+        `<img src="${photoUrl}" class="place-photo">`
+      );
+    }
+  }
+  </script>
+<script>
 document.addEventListener("DOMContentLoaded", () => {
   // Loader animation
   const form = document.getElementById("itineraryForm");

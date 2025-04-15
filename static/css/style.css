@@ -271,14 +271,13 @@ footer {
   }
   
 
-.place-photo {
-    width: 100%;          /* ocupa toda a largura do container */
-    max-width: 300px;     /* mas nunca passa de 600 px */
-      /* altura fixa */
-    object-fit: cover;    /* recorta sem distorcer */
-    border-radius: .5rem;
-    box-shadow: 0 2px 6px rgba(0,0,0,.4);
-    margin-top: 50px;
-    margin-bottom: 1rem;
+.place-photo{
+    display:block;
+    width:100%;           /* ocupa toda a largura do texto */
+    max-width:600px;      /* mas nunca passa de 600 px */
+    height:auto;          /* mantém proporção */
+    border-radius:8px;
+    margin:12px 0;
+    object-fit:cover;
 }
 

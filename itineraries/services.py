@@ -342,7 +342,7 @@ Para o dia {day_number} da viagem, considerando:
 - Viajantes: {itinerary.travelers}
 - Locais já visitados em dias anteriores: {visited_str}
 
-Gere uma lista de 6 locais interessantes e REAIS para visitar neste dia (desde a manhã até a noite, considerando lugar para almoçar em horário de almoço, pontos turísticos de tarde, etc), SEM repetir lugares já visitados.
+Gere uma lista locais interessantes e REAIS para visitar durante o dia todo (desde a manhã até a noite, considerando lugar para almoçar em horário de almoço, pontos turísticos de tarde, etc), SEM repetir lugares já visitados.
 Certifique-se de que os locais sugeridos existam de fato, que sejam facilmente verificados no Google Maps e que tenham uma logística coesa para o turista.
 
 Responda em formato JSON, assim:
@@ -463,7 +463,7 @@ def find_optimal_route(locations, distance_matrix):
     return route
 
 
-def generate_day_text_gpt(itinerary, day, ordered_places, weather_info=None):
+def generate_day_text_gpt(itinerary, day, ordered_places, budget, travelers, interests, extras, weather_info=None):
     date_formatted = day.date.strftime("%d de %B de %Y")
     day_title = f"Dia {day.day_number} - {date_formatted}"
     destination = itinerary.destination
@@ -502,6 +502,12 @@ Agora, para cada local abaixo (mantendo a ordem exata listada), crie um bloco co
 - Texto explicativo completo sobre o local, destacando o que fazer, pontos de interesse e informações relevantes.
 NÃO altere ou confunda os nomes dos locais listados.
 
+Siga atentamente as informações que o usuário passou:
+Orçamento: {budget}
+Viajantes: {travelers}
+Interesses: {interests}
+Extras: {extras}
+
 Ordem de Locais a Visitar:
 """
     for i, name in enumerate(visited_names, start=1):
@@ -510,7 +516,9 @@ Ordem de Locais a Visitar:
     prompt += """
 No final, inclua uma 'DICA FINAL' sobre o destino.
 
+
 Responda em português mantendo um tom amigável.
+Obs: O roteiro deve ser espalhado durante o dia para durar o dia todo.
 """
 
     response = openai_chatcompletion_with_retry(
@@ -630,7 +638,16 @@ def plan_one_day_itinerary(itinerary, day, already_visited=None):
     # ✅ Substituição aqui: previsão do tempo do Google baseada na data e localização
     weather_data = get_google_weather_forecast(day.date, itinerary.lat, itinerary.lng)
 
-    raw_day_text = generate_day_text_gpt(itinerary, day, route_ordered, weather_info=weather_data)
+    raw_day_text = generate_day_text_gpt(
+        itinerary,
+        day,
+        route_ordered,
+        budget=str(itinerary.budget),      # Decimal → string evita problemas de formatação
+        travelers=itinerary.travelers,
+        interests=itinerary.interests,
+        extras=itinerary.extras,
+        weather_info=weather_data,
+    )
     verified_text = verify_and_update_places(raw_day_text, itinerary.lat, itinerary.lng, itinerary.destination)
 
     final_place_names = [loc["name"] for loc in route_ordered]
