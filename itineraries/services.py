@@ -497,10 +497,10 @@ Gere um roteiro detalhado para o dia, no seguinte formato:
 📸 Locais Visitados: {visited_str}
 
 Agora, para cada local abaixo (mantendo a ordem exata listada), crie um bloco com:
-- Horário (ex: 7h30 – Café da Manhã ...)
+- Horário (ex: 7h30 - Torre Eiffel ...)
 - Marcador "📍" seguido do nome e endereço verificado
 - Texto explicativo completo sobre o local, destacando o que fazer, pontos de interesse e informações relevantes.
-NÃO altere ou confunda os nomes dos locais listados.
+NÃO fuja do padrão e NÃO altere ou confunda os nomes dos locais listados.
 
 Siga atentamente as informações que o usuário passou:
 Orçamento: {budget}
