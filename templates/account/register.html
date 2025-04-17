@@ -3,7 +3,7 @@
 {% block content %}
 <div class="container d-flex align-items-center justify-content-center">
     <div class="card auth-card p-4 mt-5">
-        <h2 class="text-center">Cadastro</h2>
+        <h2 class="text-center">Register</h2>
         <form method="POST">
             {% csrf_token %}
 
@@ -43,7 +43,8 @@
         {% endif %}
 
         <p class="text-center mt-3">
-            Já tem uma conta? <a href="{% url 'login' %}" class="text-primary">Faça login</a>
+            
+            Already have an account? <a href="{% url 'login' %}" class="text-primary">Log in</a>
         </p>
     </div>
 </div>

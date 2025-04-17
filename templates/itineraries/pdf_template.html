@@ -1,12 +1,14 @@
+{# templates/itineraries/pdf_template.html #}
+
 {% load static %}
 {% load filters %}
 {% load markdownify %}
 
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>PDF - {{ itinerary.destination }}</title>
+  <title>PDF – {{ itinerary.destination }}</title>
   <style>
     body {
       font-family: "Arial", sans-serif;
@@ -48,40 +50,37 @@
       line-height: 1.6;
       margin-top: 1em;
     }
-
     a {
       color: #1a0dab;
       text-decoration: none;
-      word-break: break-all;   /* evita estouro da linha */
+      word-break: break-all;
     }
   </style>
 </head>
 <body>
 
-  <h1>Itinerário: {{ itinerary.destination }}</h1>
+  <h1>Itinerary: {{ itinerary.destination }}</h1>
   <div class="itinerary-info">
-    <p><strong>Data:</strong> {{ itinerary.start_date }} → {{ itinerary.end_date }}</p>
-    <p><strong>Orçamento:</strong> R$ {{ itinerary.budget }}</p>
-    <p><strong>Viajantes:</strong> {{ itinerary.travelers }}</p>
-    <p><strong>Interesses:</strong> {{ itinerary.interests }}</p>
-    <p><strong>Alimentação:</strong> {{ itinerary.food_preferences }}</p>
-    <p><strong>Transporte:</strong> {{ itinerary.transport_mode }}</p>
+    <p><strong>Dates:</strong> {{ itinerary.start_date }} → {{ itinerary.end_date }}</p>
+    <p><strong>Budget (BRL):</strong> {{ itinerary.budget }}</p>
+    <p><strong>Travelers:</strong> {{ itinerary.travelers }}</p>
+    <p><strong>Interests:</strong> {{ itinerary.interests }}</p>
     <p><strong>Extras:</strong> {{ itinerary.extras }}</p>
 
-    <h3>Resumo Geral</h3>
+    <h3>General Overview</h3>
     <div class="text-block">{{ itinerary.generated_text|markdownify }}</div>
   </div>
 
   {% for d in itinerary.days.all|dictsort:"day_number" %}
     <div class="day-section">
-      <h2>Dia {{ d.day_number }} - {{ d.date }}</h2>
+      <h2>Day {{ d.day_number }} – {{ d.date }}</h2>
       <div class="text-block">{{ d.generated_text|markdownify }}</div>
     </div>
   {% endfor %}
 
   {% if map_img_b64 %}
-    <h3>🗺️ Mapa Geral</h3>
-    <img class="map-img" src="{{ map_img_b64 }}" alt="Mapa Estático">
+    <h3>🗺️ Overall Map</h3>
+    <img class="map-img" src="{{ map_img_b64 }}" alt="Static map">
   {% endif %}
 
 </body>

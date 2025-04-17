@@ -7,9 +7,9 @@
 <div class="container-fluid" style="background-color:#2C2C2E">
   <div class="row full-height-row">
 
-    {# =====================  PAINEL ESQUERDO – Formulário  ===================== #}
+    {# ===================== LEFT PANEL – Form ===================== #}
     <div class="col-md-4 left-panel d-flex align-items-start flex-column p-4">
-      <h3 class="text-white">Criar Novo Itinerário</h3>
+      <h3 class="text-white">Create New Itinerary</h3>
 
       {% if form.errors %}
       <div class="alert alert-danger w-100">
@@ -26,43 +26,43 @@
       <form method="POST" action="{% url 'dashboard' %}" class="w-100 needs-validation" novalidate id="itineraryForm">
         {% csrf_token %}
       
-        <!-- Destino -->
+        <!-- Destination -->
         <div class="mb-3">
-          <label for="destination" class="form-label">Destino *</label>
+          <label for="destination" class="form-label">Destination *</label>
           <input type="text" class="form-control" id="destination" name="destination"
-                 placeholder="Ex: Natal, Brasil" required>
-          <div class="form-text">Informe uma cidade, país ou região que deseja visitar.</div>
+                 placeholder="e.g.: Natal, Brazil" required>
+          <div class="form-text">Enter a city, country, or region you wish to visit.</div>
         </div>
       
-        <!-- Datas -->
+        <!-- Dates -->
         <div class="row g-2 mb-3">
           <div class="col">
-            <label for="startDate" class="form-label">Data de Início *</label>
+            <label for="startDate" class="form-label">Start Date *</label>
             <input type="date" class="form-control" id="startDate" name="start_date" required>
           </div>
           <div class="col">
-            <label for="endDate" class="form-label">Data de Término *</label>
+            <label for="endDate" class="form-label">End Date *</label>
             <input type="date" class="form-control" id="endDate" name="end_date" required>
           </div>
         </div>
       
-        <!-- Orçamento -->
+        <!-- Budget -->
         <div class="mb-3">
-          <label for="budget" class="form-label">Orçamento Total (R$)</label>
+          <label for="budget" class="form-label">Total Budget (R$)</label>
           <input type="number" class="form-control" id="budget" name="budget" step="0.01"
-                 placeholder="Ex: 2000">
-          <div class="form-text">Quanto pretende gastar no total da viagem?</div>
+                 placeholder="e.g.: 2000">
+          <div class="form-text">How much do you plan to spend in total for the trip?</div>
         </div>
       
-        <!-- Nº de viajantes -->
+        <!-- Number of Travelers -->
         <div class="mb-3">
-          <label for="travelers" class="form-label">Número de Viajantes</label>
+          <label for="travelers" class="form-label">Number of Travelers</label>
           <input type="number" class="form-control" id="travelers" name="travelers" min="1" value="1">
         </div>
       
-        <!-- Interesses -->
+        <!-- Trip Interests -->
         <div class="mb-3">
-          <label class="form-label d-block">Interesses na Viagem</label>
+          <label class="form-label d-block">Trip Interests</label>
           <div class="row">
             {% for interest in interests %}
             <div class="col-md-6">
@@ -74,30 +74,27 @@
             </div>
             {% endfor %}
           </div>
-          <div class="form-text">Você pode escolher vários temas que deseja focar durante a viagem.</div>
+          <div class="form-text">You can select multiple interests to focus on during your trip.</div>
         </div>
     
-      
-        
-      
-        <!-- Campo extra opcional -->
+        <!-- Optional Extras -->
         <div class="mb-3">
-          <label for="extras" class="form-label">Algo que devemos considerar?</label>
+          <label for="extras" class="form-label">Anything else we should consider?</label>
           <textarea class="form-control" id="extras" name="extras" rows="3"
-                    placeholder="Ex: Acessibilidade, evitar praias, hotéis 4 estrelas, etc."
+                    placeholder="e.g.: Accessibility, avoid beaches, 4‑star hotels, etc."
                     style="::placeholder { color: white; }"></textarea>
         </div>
       
         <div class="text-center">
-          <button type="submit" class="btn btn-primary w-100 btn-lg shadow-sm">Gerar Roteiro</button>
+          <button type="submit" class="btn btn-primary w-100 btn-lg shadow-sm">Generate Itinerary</button>
         </div>
       </form>
       
     </div>
 
-    {# =====================  PAINEL DIREITO – Itinerários  ===================== #}
+    {# ===================== RIGHT PANEL – Itineraries ===================== #}
     <div class="col-md-8 px-3 right-panel">
-      <h3 class="mb-4 pt-3 text-white">Meus Itinerários</h3>
+      <h3 class="mb-4 pt-3 text-white">My Itineraries</h3>
 
       {% if itineraries %}
       <div class="row p-3">
@@ -113,13 +110,13 @@
                   {% csrf_token %}
                   <button class="btn btn-sm btn-outline-light" type="button"
                           data-bs-toggle="modal" data-bs-target="#modalIt{{ it.id }}">
-                    Ver Detalhes
+                    View Details
                   </button>
                   <a href="{% url 'export_itinerary_pdf' it.id %}"
-                     class="btn btn-sm btn-outline-light">Baixar PDF</a>
+                     class="btn btn-sm btn-outline-light">Download PDF</a>
                   <button type="submit" class="btn btn-sm btn-outline-danger"
-                          onclick="return confirm('Tem certeza que deseja excluir este itinerário?')">
-                    Excluir
+                          onclick="return confirm('Are you sure you want to delete this itinerary?')">
+                    Delete
                   </button>
                 </form>
               </div>
@@ -127,7 +124,7 @@
           </div>
         </div>
 
-        {# ----------  MODAL DE DETALHES  ---------- #}
+        {# ---------- DETAILS MODAL ---------- #}
         <div class="modal fade" id="modalIt{{ it.id }}" tabindex="-1"
              aria-labelledby="modalItLabel{{ it.id }}" aria-hidden="true">
           <div class="modal-dialog modal-xl modal-dialog-centered">
@@ -152,7 +149,7 @@
                             id="day{{ it.id }}-{{ d.id }}-tab"
                             data-bs-toggle="tab" data-bs-target="#day{{ it.id }}-{{ d.id }}"
                             type="button" role="tab">
-                      Dia {{ d.day_number }}
+                      Day {{ d.day_number }}
                     </button>
                   </li>
                   {% endfor %}
@@ -166,15 +163,13 @@
                       <div class="ai-text" data-dayid="{{ d.id }}">{{ d.generated_text|markdownify|safe }}
                       <div class="places-photo-gallery row mt-3" id="photos-for-day-{{ d.id }}"></div>
                       </div>
-                      {# opcional: fallback, pode deixar ou remover #}
-                      
-
+                      {# optional: fallback, can keep or remove #}
 
                       {% if d.places_visited %}
                       <div class="mt-3">
-                        <strong>Lugares (Editar individualmente):</strong>
+                        <strong>Places (Edit individually):</strong>
                         <div id="day-places-{{ d.id }}"
-                        data-places='{{ d.places_visited|safe }}'></div>
+                             data-places='{{ d.places_visited|safe }}'></div>
 
                         <script>
                           (function(){
@@ -185,7 +180,7 @@
                               if (Array.isArray(arr)) {
                                 let html = "";
                                 arr.forEach((p, idx) => {
-                                  const name = p.name || "Local desconhecido";
+                                  const name = p.name || "Unknown place";
                                   html += `
                                     <div class="mt-2">
                                       ${idx+1}. ${name}
@@ -218,27 +213,27 @@
 
               <div class="modal-footer">
                 <button type="button" class="btn btn-outline-light"
-                        data-bs-dismiss="modal">Fechar</button>
+                        data-bs-dismiss="modal">Close</button>
               </div>
             </div>
           </div>
         </div>
-        {# ----------  /MODAL DE DETALHES  ---------- #}
+        {# ---------- /DETAILS MODAL ---------- #}
         {% endfor %}
       </div>
       {% else %}
-        <p class="text-white">Nenhum itinerário criado ainda...</p>
+        <p class="text-white">No itineraries created yet...</p>
       {% endif %}
     </div>
   </div>
 </div>
 
-{# ===================  MODAL TROCA DE LUGAR  =================== #}
+{# =================== REPLACE PLACE MODAL =================== #}
 <div class="modal fade" id="replaceModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered" style="color:#fff;">
     <div class="modal-content" style="background-color:#202023;">
       <div class="modal-header">
-        <h5 class="modal-title">Trocar Lugar</h5>
+        <h5 class="modal-title">Replace Place</h5>
         <button type="button" class="btn-close btn-close-white"
                 data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
@@ -249,23 +244,23 @@
           <input type="hidden" id="replaceIndex" name="place_index">
           <div class="mb-3">
             <label for="replaceObservation" class="form-label">
-              Observação / Preferência para o novo local
+              Note / Preference for the new location
             </label>
             <textarea class="form-control" id="replaceObservation" name="observation"
-                      rows="3" placeholder="Ex: Quero algo mais central, sem repetir lugares ou com comida típica"></textarea>
+                      rows="3" placeholder="e.g.: I'd like something more central, without repeating places, or with local cuisine"></textarea>
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-light"
-                  data-bs-dismiss="modal">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Confirmar Troca</button>
+                  data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Confirm Replacement</button>
         </div>
       </form>
     </div>
   </div>
 </div>
 
-{# ===================  LOADING OVERLAY  =================== #}
+{# =================== LOADING OVERLAY =================== #}
 <div id="loadingOverlay" style="display:none;">
   <div class="loading-backdrop"></div>
   <div class="loading-box text-center">
@@ -273,7 +268,7 @@
     <div class="progress mt-4" style="height:10px;">
       <div id="loadingBar" class="progress-bar bg-primary" role="progressbar" style="width:0%;"></div>
     </div>
-    <p id="loadingText" class="mt-3 fs-5 text-white">Preparando roteiro...</p>
+    <p id="loadingText" class="mt-3 fs-5 text-white">Preparing itinerary...</p>
   </div>
 </div>
 {% endblock %}
@@ -283,15 +278,15 @@
 /* ---------- UTIL ---------- */
 function normalizeText(str) {
   return (str||"")
-    .normalize("NFD")            // separa acentos
-    .replace(/[\u0300-\u036f]/g, "")  // remove acentos
-    .replace(/[^\w\s]/g, " ")    // remove pontuação
+    .normalize("NFD")            // separate accents
+    .replace(/[\u0300-\u036f]/g, "")  // remove accents
+    .replace(/[^\w\s]/g, " ")    // remove punctuation
     .toLowerCase()
     .trim();
 }
 
-/* ---------- FOTO ---------- */
-const photoCache = new Map();            // chave = query, valor = url
+/* ---------- PHOTO ---------- */
+const photoCache = new Map();            // key = query, value = url
 
 function textMatchesPlace(elText, placeName) {
   const a = normalizeText(elText);
@@ -299,48 +294,48 @@ function textMatchesPlace(elText, placeName) {
   return a.includes(b);
 }
 
-/* ---------- FOTO ---------- */
+/* ---------- PHOTO ---------- */
 function insertPhotoInGallery(dayId, placeName, photoUrl) {
-  // 1) procura a div com toda a descrição daquele dia
+  // 1) find the div containing the description for that day
   const aiContainer = document.querySelector(`.ai-text[data-dayid="${dayId}"]`);
   if (!aiContainer) return;
 
-  /* 2) percorre todos os elementos de texto dentro da descrição
-        até achar o primeiro cujo texto contenha o nome do local        */
+  /* 2) iterate over all text elements within the description
+        until finding the first whose text contains the place name */
   const walker = document.createTreeWalker(aiContainer, NodeFilter.SHOW_ELEMENT, null);
   let targetEl = null;
   while (walker.nextNode()) {
     const el = walker.currentNode;
     if (textMatchesPlace(el.textContent, placeName)) {
-      targetEl = el;                   // «achou» o parágrafo/cabeçalho do local
+      targetEl = el;                   // found the paragraph/header for the place
       break;
     }
   }
 
-  // 3) se não achou, joga a foto para o “fallback gallery” no fim
+  // 3) if not found, append the photo to the fallback gallery at the end
   if (!targetEl) {
     const fallback = document.getElementById(`photos-for-day-${dayId}`);
     if (fallback) {
       fallback.insertAdjacentHTML(
         "beforeend",
         `<div class="col-12 mb-3">
-           <img src="${photoUrl}" class="img-fluid rounded" alt="Foto de ${placeName}">
+           <img src="${photoUrl}" class="img-fluid rounded" alt="Photo of ${placeName}">
          </div>`
       );
     }
     return;
   }
 
-  // 4) insere a imagem logo DEPOIS do elemento de texto encontrado
+  // 4) insert the image immediately AFTER the found text element
   targetEl.insertAdjacentHTML(
     "afterend",
     `<div class="my-3">
-       <img src="${photoUrl}" class="img-fluid rounded w-100" alt="Foto de ${placeName}">
+       <img src="${photoUrl}" class="img-fluid rounded w-100" alt="Photo of ${placeName}">
      </div>`
   );
 }
 
-/* continua igual – apenas removemos a referência a day-places‑…         */
+/* remains the same – we've just removed the reference to day-places‑… */
 function fetchPhotosForPlaces(dayId, placesJson, destination) {
   let places;
   try { places = JSON.parse(placesJson); } catch { return; }
@@ -372,7 +367,7 @@ function fetchPhotosForPlaces(dayId, placesJson, destination) {
         photoCache.set(cacheKey, photoUrl);
         insertPhotoInGallery(dayId, place.name, photoUrl);
       })
-      .catch(err => console.error("Foto:", err));
+      .catch(err => console.error("Photo error:", err));
   });
 }
 </script>
@@ -380,7 +375,6 @@ function fetchPhotosForPlaces(dayId, placesJson, destination) {
 <script id="places-{{ d.id }}" type="application/json">
   {{ d.places_visited|safe }}
 </script>
-
 
 <script>
 /* ---------- LOADER / FORM ---------- */
@@ -391,11 +385,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const text = document.getElementById("loadingText");
 
   const msgs = [
-    "Analisando destino...",
-    "Selecionando melhores locais...",
-    "Otimizando rotas...",
-    "Planejando experiências únicas...",
-    "Gerando roteiro perfeito..."
+    "Analyzing destination...",
+    "Selecting best spots...",
+    "Optimizing routes...",
+    "Planning unique experiences...",
+    "Generating perfect itinerary..."
   ];
   let p = 0, idx = 0, iv;
 
@@ -427,7 +421,7 @@ function initAutocomplete() {
     new google.maps.places.Autocomplete(destInput, { types: ["(cities)"] });
   }
 
-  /* fotos + mapa quando o usuário abrir um modal */
+  /* photos + map when the user opens a modal */
   document.querySelectorAll(".modal.fade").forEach(modal => {
     modal.addEventListener("shown.bs.modal", () => {
       const id = modal.getAttribute("id");
@@ -436,7 +430,7 @@ function initAutocomplete() {
       const itinId = id.replace("modalIt", "");
       initMultipleMarkers(itinId);
 
-      /* Fotos */
+      /* photos */
       modal.querySelectorAll('[id^="day-places-"]').forEach(div => {
         const dayId      = div.id.replace("day-places-", "");
         const placesJson = div.dataset.places;
@@ -475,12 +469,12 @@ function initMultipleMarkers(itineraryId) {
   if (markers.length > 1) map.fitBounds(bounds);
 }
 
-/* auto‑abrir modal recém‑criado (mantido) */
+/* auto‑open newly created modal (kept) */
 document.addEventListener("DOMContentLoaded", () => {
   const autoId = "{{ new_itinerary_id|default:'' }}";
   if (autoId) new bootstrap.Modal(document.getElementById("modalIt" + autoId)).show();
 
-  /* preencher campos ocultos p/ troca de lugar */
+  /* fill hidden fields for replacing a place */
   document.body.addEventListener("click", e => {
     if (e.target?.classList.contains("replace-place-btn")) {
       document.getElementById("replaceDayId").value = e.target.dataset.dayid;

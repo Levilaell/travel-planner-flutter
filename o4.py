@@ -11,9 +11,9 @@ def gpt_to_markdown(prompt, filename="output.md", api_key=os.getenv('OPENAI_KEY'
     try:
         # Fazer a requisição para a API do GPT
         response = openai.ChatCompletion.create(
-            model="o3",
+            model="o1",
             messages=[{"role": "user", "content": prompt}],
-            max_completion_tokens=9000,
+            max_completion_tokens=20000,
         )
         
         # Extrair o texto da resposta
@@ -1025,7 +1025,7 @@ Gere um roteiro detalhado para o dia, no seguinte formato:
 📸 Locais Visitados: {visited_str}
 
 Agora, para cada local abaixo (mantendo a ordem exata listada), crie um bloco com:
-- Horário (ex: 7h30 – Torre Eiffel ...)
+- Horário (ex: 7h30 - Torre Eiffel ...)
 - Marcador "📍" seguido do nome e endereço verificado
 - Texto explicativo completo sobre o local, destacando o que fazer, pontos de interesse e informações relevantes.
 NÃO fuja do padrão e NÃO altere ou confunda os nomes dos locais listados.
@@ -1342,8 +1342,98 @@ Responda apenas com o nome do lugar, sem texto adicional.
         return ""
 
 
+{# templates/itineraries/pdf_template.html #}
 
-Sobre as fotos, elas estão todas no final, mas elas devem ser inseridas após a sua descrição, cada uma após sua respectiva descrição.
+{% load static %}
+{% load filters %}
+{% load markdownify %}
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>PDF - {{ itinerary.destination }}</title>
+  <style>
+    body {
+      font-family: "Arial", sans-serif;
+      color: #333;
+      margin: 20px;
+    }
+    h1, h2, h3 {
+      margin-bottom: 0.2em;
+      color: #444;
+    }
+    .itinerary-info {
+      margin-bottom: 20px;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 15px;
+    }
+    .day-section {
+      margin-bottom: 30px;
+      padding: 10px;
+      border: 1px solid #ccc;
+    }
+    .day-section h2 {
+      margin-top: 0;
+      color: #555;
+    }
+    pre {
+      white-space: pre-wrap;
+      font-family: "Arial", sans-serif;
+      font-size: 14px;
+    }
+    .map-img {
+      margin-top: 10px;
+      display: block;
+      max-width: 100%;
+      height: auto;
+    }
+    .text-block {
+      white-space: pre-line;
+      font-size: 15px;
+      line-height: 1.6;
+      margin-top: 1em;
+    }
+
+    a {
+      color: #1a0dab;
+      text-decoration: none;
+      word-break: break-all;   /* evita estouro da linha */
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Itinerário: {{ itinerary.destination }}</h1>
+  <div class="itinerary-info">
+    <p><strong>Data:</strong> {{ itinerary.start_date }} → {{ itinerary.end_date }}</p>
+    <p><strong>Orçamento:</strong> R$ {{ itinerary.budget }}</p>
+    <p><strong>Viajantes:</strong> {{ itinerary.travelers }}</p>
+    <p><strong>Interesses:</strong> {{ itinerary.interests }}</p>
+    <p><strong>Alimentação:</strong> {{ itinerary.food_preferences }}</p>
+    <p><strong>Transporte:</strong> {{ itinerary.transport_mode }}</p>
+    <p><strong>Extras:</strong> {{ itinerary.extras }}</p>
+
+    <h3>Resumo Geral</h3>
+    <div class="text-block">{{ itinerary.generated_text|markdownify }}</div>
+  </div>
+
+  {% for d in itinerary.days.all|dictsort:"day_number" %}
+    <div class="day-section">
+      <h2>Dia {{ d.day_number }} - {{ d.date }}</h2>
+      <div class="text-block">{{ d.generated_text|markdownify }}</div>
+    </div>
+  {% endfor %}
+
+  {% if map_img_b64 %}
+    <h3>🗺️ Mapa Geral</h3>
+    <img class="map-img" src="{{ map_img_b64 }}" alt="Mapa Estático">
+  {% endif %}
+
+</body>
+</html>
+
+Traduza tudo que estiver em português para o inglês, pois esse saas quero vender globalmente. forneça os códigos completos.
 
 
 
