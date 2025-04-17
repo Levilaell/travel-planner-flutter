@@ -1,133 +1,97 @@
-Para injetar a foto logo após o parágrafo (ou título, ou trecho) que descreve cada lugar — e não mais dentro da listagem de “editar lugares” — precisamos:
+O problema não está no template (HTML) e sim na função JavaScript que procura o “local” no DOM para, depois, dar o insertAdjacentHTML do `<img>`.  
+Atualmente ela olha a lista “day‑places‑…”, isto é, o bloco que contém apenas o nome do local e o botão 🔄 – por isso a foto vai parar ali.  
+Troque a busca para o texto da descrição que está dentro da `<div class="ai‑text" …>`.
 
- 1. **No template**:  
-    • Manter o `data-dayid` em `.ai-text` (já está) para sabermos em que dia estamos.  
-    • Remover (ou deixar só como _backup_) o container `#day-places-{{ d.id }}` como zona de holding do JSON, mas não usá‑lo para render de fotos.  
+1. NO TEMPLATE (opcional)  
+   Pode deixar exatamente como está. A `<div class="ai‑text" data-dayid="…">` já existe e é nela que a descrição completa é renderizada.  
 
-    Ficaria algo assim, simplificado (só o trecho relevante):
-    
-    ```html
-    <div class="result-card mb-3">
-      <div class="ai-text" data-dayid="{{ d.id }}">
-        {{ d.generated_text|markdownify|safe }}
-      </div>
-      <!-- container que guarda o JSON, mas sem exibir nada -->
-      <div id="day-places-{{ d.id }}" data-places='{{ d.places_visited|safe }}' style="display:none;"></div>
-    </div>
-    ```
-    
- 2. **No JavaScript**:  
-    Substituir a lógica de busca e inserção de fotos dentro da listagem por uma lógica que:
-    
-    a) Recupere o JSON de `places_visited` via `data-places` no `#day-places-{{ d.id }}`.  
-    b) Para cada lugar, procure dentro da `div.ai-text[data-dayid="…"]` o elemento (p, h3, li, whatever) cujo texto contenha o nome do lugar.  
-    c) Insira ali, **logo após** esse elemento, a `<img>` com a foto.  
+2. NO JS – altere só estas duas funções:
 
-    Exemplo de código (substitua suas funções `insertPhotoInGallery` e `fetchPhotosForPlaces` por algo como isto):  
+```js
+/* ---------- FOTO ---------- */
+function insertPhotoInGallery(dayId, placeName, photoUrl) {
+  // 1) procura a div com toda a descrição daquele dia
+  const aiContainer = document.querySelector(`.ai-text[data-dayid="${dayId}"]`);
+  if (!aiContainer) return;
 
-    ```js
-    // normalização e cache podem ficar como estão
-    const photoCache = new Map();
-
-    function normalizeText(str) {
-      return (str||"")
-        .normalize("NFD")
-        .replace(/[̀-ͯ]/g, "")
-        .replace(/[^\w\s]/g, " ")
-        .toLowerCase()
-        .trim();
+  /* 2) percorre todos os elementos de texto dentro da descrição
+        até achar o primeiro cujo texto contenha o nome do local        */
+  const walker = document.createTreeWalker(aiContainer, NodeFilter.SHOW_ELEMENT, null);
+  let targetEl = null;
+  while (walker.nextNode()) {
+    const el = walker.currentNode;
+    if (textMatchesPlace(el.textContent, placeName)) {
+      targetEl = el;                   // «achou» o parágrafo/cabeçalho do local
+      break;
     }
+  }
 
-    function insertPhotoAfterDescription(dayId, placeName, photoUrl) {
-      const aiText = document.querySelector(`.ai-text[data-dayid="${dayId}"]`);
-      if (!aiText) return;
-
-      // procuramos qualquer parágrafo, título ou li que fale do placeName
-      const candidates = Array.from(aiText.querySelectorAll("p, h1, h2, h3, li"));
-      for (let el of candidates) {
-        if ( normalizeText(el.textContent).includes(normalizeText(placeName)) ) {
-          // inserimos logo após esse el
-          el.insertAdjacentHTML(
-            "afterend",
-            `<div class="place-photo-wrapper text-center my-3">
-               <img src="${photoUrl}"
-                    class="img-fluid rounded"
-                    alt="Foto de ${placeName}"
-                    style="max-height:200px;">
-             </div>`
-          );
-          return;
-        }
-      }
-      // se não encontrar parágrafo, podemos anexar ao final do aiText:
-      aiText.insertAdjacentHTML(
+  // 3) se não achou, joga a foto para o “fallback gallery” no fim
+  if (!targetEl) {
+    const fallback = document.getElementById(`photos-for-day-${dayId}`);
+    if (fallback) {
+      fallback.insertAdjacentHTML(
         "beforeend",
-        `<div class="place-photo-wrapper text-center my-3">
-           <img src="${photoUrl}"
-                class="img-fluid rounded"
-                alt="Foto de ${placeName}"
-                style="max-height:200px;">
+        `<div class="col-12 mb-3">
+           <img src="${photoUrl}" class="img-fluid rounded" alt="Foto de ${placeName}">
          </div>`
       );
     }
+    return;
+  }
 
-    function fetchPhotosForPlaces(dayId, placesJson, destination) {
-      let places;
-      try { places = JSON.parse(placesJson); } catch { return; }
+  // 4) insere a imagem logo DEPOIS do elemento de texto encontrado
+  targetEl.insertAdjacentHTML(
+    "afterend",
+    `<div class="my-3">
+       <img src="${photoUrl}" class="img-fluid rounded w-100" alt="Foto de ${placeName}">
+     </div>`
+  );
+}
 
-      places.forEach(place => {
-        const query = `${place.name}, ${destination}`;
-        const key = query.toLowerCase();
+/* continua igual – apenas removemos a referência a day-places‑…         */
+function fetchPhotosForPlaces(dayId, placesJson, destination) {
+  let places;
+  try { places = JSON.parse(placesJson); } catch { return; }
 
-        if (photoCache.has(key)) {
-          return insertPhotoAfterDescription(dayId, place.name, photoCache.get(key));
-        }
+  places.forEach(place => {
+    const query = `${place.name}, ${destination}`;
+    const cacheKey = query.toLowerCase();
 
-        const googleUrl =
-          `https://maps.googleapis.com/maps/api/place/findplacefromtext/json` +
-          `?input=${encodeURIComponent(query)}` +
-          `&inputtype=textquery&fields=photos&key={{ googlemaps_key }}`;
-
-        fetch("{% url 'proxy_google_places' %}?url=" + encodeURIComponent(googleUrl))
-          .then(r => r.json())
-          .then(data => {
-            let photoUrl;
-            const ref = data.candidates?.[0]?.photos?.[0]?.photo_reference;
-            if (ref) {
-              photoUrl = "{% url 'proxy_google_photo' %}?photo_ref=" + ref;
-            } else {
-              photoUrl =
-                `https://source.unsplash.com/600x400/?${encodeURIComponent(place.name + ' ' + destination)}`;
-            }
-            photoCache.set(key, photoUrl);
-            insertPhotoAfterDescription(dayId, place.name, photoUrl);
-          })
-          .catch(console.error);
-      });
+    if (photoCache.has(cacheKey)) {
+      insertPhotoInGallery(dayId, place.name, photoCache.get(cacheKey));
+      return;
     }
 
-    // dispara quando o modal abre
-    document.querySelectorAll(".modal.fade").forEach(modal => {
-      modal.addEventListener("shown.bs.modal", () => {
-        const itinId = modal.id.replace("modalIt", "");
-        // demais init de mapa...
+    const googleUrl =
+      `https://maps.googleapis.com/maps/api/place/findplacefromtext/json` +
+      `?input=${encodeURIComponent(query)}` +
+      `&inputtype=textquery&fields=photos&key={{ googlemaps_key }}`;
 
-        modal.querySelectorAll('[id^="day-places-"]').forEach(div => {
-          const dayId = div.id.replace("day-places-", "");
-          const raw = div.dataset.places;
-          if (raw) {
-            // título do modal tem o destino
-            const destination =
-              modal.querySelector(".modal-title")?.textContent.split(" - ")[0] || "";
-            fetchPhotosForPlaces(dayId, raw, destination);
-          }
-        });
-      });
-    });
-    ```
+    fetch("{% url 'proxy_google_places' %}?url=" + encodeURIComponent(googleUrl))
+      .then(r => r.json())
+      .then(data => {
+        let photoUrl;
+        const ref = data.candidates?.[0]?.photos?.[0]?.photo_reference;
 
- 3. **Resumo**  
-    - No HTML: não use mais o container que exibia as fotos no final da listagem de edição, mas mantenha o `data-places` guardando o JSON.  
-    - No JS: troque a função de inserção de fotos (`insertPhotoInGallery`) por uma que procure dentro do `.ai-text` e injete a foto **logo após** o parágrafo/título que menciona o nome do lugar.  
+        photoUrl = ref
+          ? "{% url 'proxy_google_photo' %}?photo_ref=" + ref
+          : `https://source.unsplash.com/600x400/?${encodeURIComponent(place.name + ' ' + destination)}`;
 
-Dessa forma cada `[Foto …]` aparecerá imediatamente após a descrição gerada daquele ponto, igual ao exemplo que você quer.
+        photoCache.set(cacheKey, photoUrl);
+        insertPhotoInGallery(dayId, place.name, photoUrl);
+      })
+      .catch(err => console.error("Foto:", err));
+  });
+}
+```
+
+O resto do arquivo (loader, mapas, etc.) permanece igual.
+
+O que mudou?
+
+• insertPhotoInGallery agora procura o trecho de texto dentro de `.ai-text`  
+• Quando encontra, faz `afterend` – a imagem fica logo após o parágrafo/cabeçalho do local, exatamente onde você queria  
+• Se, por algum motivo, não encontrar o texto, cai no “fallback gallery” (o bloco `photos-for-day-…` que já existe no template).
+
+Salve, recarregue a página e as fotos passarão a aparecer logo após a descrição de cada ponto do roteiro.

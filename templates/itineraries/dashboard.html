@@ -298,23 +298,48 @@ function textMatchesPlace(elText, placeName) {
   return a.includes(b);
 }
 
+/* ---------- FOTO ---------- */
 function insertPhotoInGallery(dayId, placeName, photoUrl) {
-  const listContainer = document.getElementById(`day-places-${dayId}`);
-  if (!listContainer) return;
-  // cada filho <div> é um lugar (você montou assim lá no template)
-  const items = Array.from(listContainer.children);
-  for (let item of items) {
-    if (normalizeText(item.textContent).includes(normalizeText(placeName))) {
-      item.insertAdjacentHTML(
-        "beforeend",
-        `<img src="${photoUrl}" class="place-photo img-fluid rounded mt-2" 
-              alt="Foto de ${placeName}" />`
-      );
-      return;
+  // 1) procura a div com toda a descrição daquele dia
+  const aiContainer = document.querySelector(`.ai-text[data-dayid="${dayId}"]`);
+  if (!aiContainer) return;
+
+  /* 2) percorre todos os elementos de texto dentro da descrição
+        até achar o primeiro cujo texto contenha o nome do local        */
+  const walker = document.createTreeWalker(aiContainer, NodeFilter.SHOW_ELEMENT, null);
+  let targetEl = null;
+  while (walker.nextNode()) {
+    const el = walker.currentNode;
+    if (textMatchesPlace(el.textContent, placeName)) {
+      targetEl = el;                   // «achou» o parágrafo/cabeçalho do local
+      break;
     }
   }
+
+  // 3) se não achou, joga a foto para o “fallback gallery” no fim
+  if (!targetEl) {
+    const fallback = document.getElementById(`photos-for-day-${dayId}`);
+    if (fallback) {
+      fallback.insertAdjacentHTML(
+        "beforeend",
+        `<div class="col-12 mb-3">
+           <img src="${photoUrl}" class="img-fluid rounded" alt="Foto de ${placeName}">
+         </div>`
+      );
+    }
+    return;
+  }
+
+  // 4) insere a imagem logo DEPOIS do elemento de texto encontrado
+  targetEl.insertAdjacentHTML(
+    "afterend",
+    `<div class="my-3">
+       <img src="${photoUrl}" class="img-fluid rounded w-100" alt="Foto de ${placeName}">
+     </div>`
+  );
 }
 
+/* continua igual – apenas removemos a referência a day-places‑…         */
 function fetchPhotosForPlaces(dayId, placesJson, destination) {
   let places;
   try { places = JSON.parse(placesJson); } catch { return; }
@@ -324,8 +349,8 @@ function fetchPhotosForPlaces(dayId, placesJson, destination) {
     const cacheKey = query.toLowerCase();
 
     if (photoCache.has(cacheKey)) {
-      return insertPhotoInGallery(dayId, place.name, photoCache.get(cacheKey));
-
+      insertPhotoInGallery(dayId, place.name, photoCache.get(cacheKey));
+      return;
     }
 
     const googleUrl =
@@ -339,12 +364,9 @@ function fetchPhotosForPlaces(dayId, placesJson, destination) {
         let photoUrl;
         const ref = data.candidates?.[0]?.photos?.[0]?.photo_reference;
 
-        if (ref) {
-          photoUrl = "{% url 'proxy_google_photo' %}?photo_ref=" + ref;
-        } else {
-          photoUrl =
-            `https://source.unsplash.com/600x400/?${encodeURIComponent(place.name + ' ' + destination)}`;
-        }
+        photoUrl = ref
+          ? "{% url 'proxy_google_photo' %}?photo_ref=" + ref
+          : `https://source.unsplash.com/600x400/?${encodeURIComponent(place.name + ' ' + destination)}`;
 
         photoCache.set(cacheKey, photoUrl);
         insertPhotoInGallery(dayId, place.name, photoUrl);
