@@ -16,6 +16,8 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
+from django.utils.formats import date_format
+from django.utils.translation import gettext as _
 from dotenv import load_dotenv
 from google.auth.transport.requests import AuthorizedSession, Request
 from google.oauth2 import service_account
@@ -58,29 +60,30 @@ def request_with_retry(url, params=None, max_attempts=3, timeout=60):
             time.sleep(2**attempt)
 
 
-def openai_chatcompletion_with_retry(messages, model="gpt-4o-mini", temperature=0.8, max_attempts=3, max_tokens=6000):
-    """
-    Generic function for OpenAI ChatCompletion calls with up to max_attempts retries.
-    Logs warnings on failures; re-raises exception if all attempts fail.
-    """
+def openai_chatcompletion_with_retry(
+    messages,
+    model="gpt-4o-mini",
+    temperature=0,
+    max_tokens=800,
+    max_attempts=3,
+    **extra,                       # ← NOVO!
+):
     for attempt in range(max_attempts):
         try:
-            response = openai.ChatCompletion.create(
+            return openai.ChatCompletion.create(
                 model=model,
                 messages=messages,
                 max_tokens=max_tokens,
-                temperature=temperature
+                temperature=temperature,
+                **extra,           # ← repassa response_format
             )
-            return response
         except openai.error.OpenAIError as e:
             logger.warning(
-                f"[openai_chatcompletion_with_retry] Attempt {attempt+1}/{max_attempts} failed: {e}"
+                f"[openai_chatcompletion_with_retry] {attempt+1}/{max_attempts} – {e}"
             )
             if attempt == max_attempts - 1:
-                logger.error(f"[openai_chatcompletion_with_retry] Final failure: {e}")
                 raise
-            time.sleep(2**attempt)
-
+            time.sleep(2 ** attempt)
 
 def build_markers_json(itinerary):
     """
@@ -304,7 +307,7 @@ You are an intelligent travel planner. Generate a **general overview** for the t
 
 Destination: {itinerary.destination}
 Dates: {itinerary.start_date} to {itinerary.end_date}
-Budget: {itinerary.budget}
+Budget: ${itinerary.budget}
 Travelers: {itinerary.travelers}
 Interests: {itinerary.interests}
 Extras: {itinerary.extras}
@@ -325,7 +328,7 @@ At night, Paris lights up in a magical display that creates lasting memories. Wi
     response = openai_chatcompletion_with_retry(
         messages=[{"role": "user", "content": prompt}],
         model="gpt-4o-mini",
-        temperature=0.8,
+        temperature=0,
         max_tokens=6000,
         max_attempts=3
     )
@@ -335,41 +338,40 @@ At night, Paris lights up in a magical display that creates lasting memories. Wi
 def suggest_places_gpt(itinerary, day_number, already_visited):
     visited_str = ", ".join(already_visited) if already_visited else "None"
 
-    prompt = f"""
-You are a travel planner specialized in {itinerary.destination}.
-For day {day_number}, considering:
-- Interests: {itinerary.interests}
-- Budget: {itinerary.budget}
-- Travelers: {itinerary.travelers}
-- Already visited places: {visited_str}
+    system_msg = {
+        "role": "system",
+        "content": (
+            "You are a travel-planner assistant. "
+            "Return ONLY valid JSON in the shape: "
+            '{ "places": ["Place 1", "Place 2"] }'
+        ),
+    }
 
-Generate a list of REAL, existing places to visit throughout the day (morning to evening), including a lunch spot. Do NOT repeat visited places. Ensure all suggestions can be found on Google Maps and make logistical sense.
+    user_msg = {
+        "role": "user",
+        "content": f"""
+Destination: {itinerary.destination}
+Day: {day_number}
+Interests: {itinerary.interests or 'None'}
+Budget: {itinerary.budget or 'n/a'}
+Travelers: {itinerary.travelers}
+Already visited: {visited_str}
+Suggest real, Google-Maps-findable places (morning → evening, inc. lunch).
+DO NOT repeat visited places. JSON only, no extra text.
+""",
+    }
 
-Respond in JSON format only, like:
-
-[
-  "Place 1",
-  "Place 2",
-  ...
-]
-
-Do not include any extra text.
-"""
-    response = openai_chatcompletion_with_retry(
-        messages=[{"role": "user", "content": prompt}],
-        model="gpt-4o-mini",
-        temperature=0.8,
-        max_tokens=6000,
-        max_attempts=3
-    )
-    content = response.choices[0].message["content"]
     try:
-        places_list = json.loads(content)
-        return [p.strip() for p in places_list if isinstance(p, str)]
+        resp = openai_chatcompletion_with_retry(
+            [system_msg, user_msg],
+            temperature=0,
+            response_format={"type": "json_object"},   # ⭐️ JSON Mode
+        )
+        data = json.loads(resp.choices[0].message.content)
+        return [p.strip() for p in data.get("places", []) if isinstance(p, str)]
     except Exception as e:
-        logger.error(f"[suggest_places_gpt] JSON parse error: {e}")
+        logger.error(f"[suggest_places_gpt] JSON decode error: {e}")
         return []
-
 
 def get_place_coordinates(place_name, reference_location="48.8566,2.3522", destination=None, radius=5000):
     """
@@ -457,7 +459,7 @@ def generate_day_text_gpt(itinerary, day, ordered_places, budget, travelers, int
     """
     Generate a detailed day itinerary narrative using GPT.
     """
-    date_formatted = day.date.strftime("%d %B %Y")
+    date_formatted = date_format(day.date, format='DATE_FORMAT', use_l10n=True)
     day_title = f"Day {day.day_number} - {date_formatted}"
     destination = itinerary.destination
 
@@ -491,7 +493,7 @@ For each place below (in the exact order listed), create a block including:
 Do NOT change or confuse the place names.
 
 Trip details:
-Budget: {budget}
+Budget: ${budget}
 Travelers: {travelers}
 Interests: {interests}
 Extras: {extras}
@@ -510,9 +512,9 @@ Respond in English with a friendly tone.
     response = openai_chatcompletion_with_retry(
         messages=[{"role": "user", "content": prompt}],
         model="gpt-4o-mini",
-        temperature=0.8,
+        temperature=0,
         max_tokens=6000,
-        max_attempts=3
+        max_attempts=3, 
     )
 
     return response.choices[0].message["content"]
@@ -759,7 +761,6 @@ I need to replace a place that didn't fit my preferences.
 Details:
 - Trip day: {day.day_number}
 - Interests: {itinerary.interests}
-- Budget: {itinerary.budget}
 - Travelers: {itinerary.travelers}
 - Already visited (do not repeat): {visited_str}
 - User note for new place: {user_observation}
@@ -771,7 +772,7 @@ Respond with the place name only.
         response = openai_chatcompletion_with_retry(
             messages=[{"role": "user", "content": prompt}],
             model="gpt-4o-mini",
-            temperature=0.8,
+            temperature=0,
             max_tokens=6000,
             max_attempts=3
         )

@@ -77,7 +77,7 @@ def build_markers_json(itinerary):
 
 @login_required
 def dashboard_view(request):
-    interests = ["Cultura", "Gastronomia", "Aventura", "Natureza", "Compras", "História", "Romance"]
+    interests = ["Culture", "Gastronomy", "Adventure", "Nature", "Shopping", "History", "Romance"]
 
     if request.method == 'POST':
         form = ItineraryForm(request.POST)
