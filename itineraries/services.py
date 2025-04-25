@@ -19,6 +19,7 @@ from django.urls import reverse
 from django.utils.formats import date_format
 from django.utils.translation import gettext as _
 from dotenv import load_dotenv
+from geopy.distance import geodesic
 from google.auth.transport.requests import AuthorizedSession, Request
 from google.oauth2 import service_account
 from weasyprint import HTML
@@ -40,6 +41,15 @@ REQ_TIMEOUT          = settings.REQUEST_TIMEOUT
 # ========================================================
 #                  Utility Functions
 # ========================================================
+
+def _trip_days(itin: Itinerary) -> int:
+    """
+    Quantidade de dias da viagem (>=1).
+    """
+    try:
+        return max((itin.end_date - itin.start_date).days + 1, 1)
+    except Exception:
+        return 1
 
 def request_with_retry(url, params=None, max_attempts=3, timeout=HTTP_TIMEOUT):
     """
@@ -279,6 +289,75 @@ def add_review_view(request, pk):
     return render(request, 'itineraries/add_review.html', {'form': form, 'itinerary': itinerary})
 
 
+
+def validate_google_place(candidate,
+                          dest_lat: float, dest_lng: float,
+                          *,
+                          max_km: float,
+                          min_rating: float,
+                          max_price: int | None) -> bool:
+    try:
+        loc   = candidate["geometry"]["location"]
+        dist  = geodesic((dest_lat, dest_lng), (loc["lat"], loc["lng"])).km
+        ok_d  = dist <= max_km
+        ok_bs = candidate.get("business_status") == "OPERATIONAL"
+        ok_rt = float(candidate.get("rating", 0)) >= min_rating
+        ok_pr = True if max_price is None else \
+                int(candidate.get("price_level", max_price)) <= max_price
+        return ok_d and ok_bs and ok_rt and ok_pr
+    except Exception:
+        return False
+    
+def search_best_place(category: str, dest: str,
+                      dest_lat: float, dest_lng: float,
+                      criteria: dict) -> tuple | None:
+    url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
+    params = {
+        "query":  f"{category} in {dest}",
+        "location": f"{dest_lat},{dest_lng}",
+        "radius":   criteria["radius_m"],
+        "key":      settings.GOOGLEMAPS_KEY,
+    }
+    data = request_with_retry(url, params=params).json()
+    if data.get("status") != "OK":
+        return None
+
+    for cand in data["results"]:
+        if validate_google_place(
+                cand, dest_lat, dest_lng,
+                max_km     = criteria["radius_m"] / 1000,
+                min_rating = criteria["min_rating"],
+                max_price  = criteria["max_price"]):
+            loc = cand["geometry"]["location"]
+            return cand["name"], loc["lat"], loc["lng"]
+    return None
+
+def search_place_by_name(name: str, dest: str,
+                         dest_lat: float, dest_lng: float) -> tuple | None:
+    """
+    Procura por UM lugar específico (pelo nome) e devolve (name, lat, lng)
+    somente se for considerado válido por `validate_google_place`.
+    """
+    url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
+    params = {
+        "query": f"{name} in {dest}",
+        "location": f"{dest_lat},{dest_lng}",
+        "radius": 25000,
+        "key": settings.GOOGLEMAPS_KEY,
+    }
+    data = request_with_retry(url, params=params).json()
+    if data.get("status") != "OK":
+        return None
+
+    for cand in data["results"]:
+        # Aceita qualquer candidato que contenha o nome procurado
+        if name.lower() in cand["name"].lower() and \
+           validate_google_place(cand, dest_lat, dest_lng):
+            loc = cand["geometry"]["location"]
+            return cand["name"], loc["lat"], loc["lng"]
+    return None
+
+
 @login_required
 def replace_place_view(request):
     if request.method == 'POST':
@@ -336,175 +415,52 @@ At night, Paris lights up in a magical display that creates lasting memories. Wi
 
 
 
-def suggest_places_gpt(itinerary, day_number, already_visited):
+def suggest_categories_gpt(itinerary, day_number):
     """
-    Always returns 6 dicts with keys: role, place.
-    role ∈ {breakfast, morning, lunch, afternoon, dinner, evening}
+    Retorna 6 dicts - {role, category}. NÃO devolve nome de lugar real.
     """
-    visited = ", ".join(already_visited) or "None"
-
     system_msg = {
         "role": "system",
         "content": (
             "You are a travel-planner assistant.\n"
             "Return ONLY valid JSON like:\n"
-            '{"plan":[{"role":"breakfast","place":"Padaria X"}, …]}\n'
+            '{"plan":[{"role":"breakfast","category":"trendy coffee shop"}, …]}\n'
             "Rules:\n"
             "• Exactly six objects in this order: breakfast, morning, lunch, "
             "afternoon, dinner, evening.\n"
-            "• place must be a real, Google-Maps-findable business/attraction "
-            "near the destination.\n"
-            "• breakfast / lunch / dinner MUST be eateries (cafe, restaurant, "
-            "street-food, etc.).\n"
-            "• Do NOT repeat anything in ‘Already visited’.  No explanations!"
+            "• category must be a short phrase describing *type* of place, "
+            "NOT a specific venue name.\n"
+            "• Breakfast/Lunch/Dinner categories must be eateries."
         )
     }
+    trip_days   = _trip_days(itinerary)
+    daily_budget = itinerary.budget // trip_days if itinerary.budget else ""
 
     user_msg = {
         "role": "user",
         "content": (
-            f"Destination: {itinerary.destination}\n"
-            f"Day: {day_number}\n"
-            f"Interests: {itinerary.interests or 'None'}\n"
-            f"Already visited: {visited}"
+            f"Destination city: {itinerary.destination}\n"
+            f"Day number: {day_number}\n"
+            f"Key interests: {itinerary.interests or 'None'}\n"
+            f"Budget per day: ~${daily_budget}\n"        # <= usa cálculo local
+            f"Extras / constraints: {itinerary.extras or 'None'}\n"
+            "Respond in JSON only."
         )
     }
-
     resp = openai_chatcompletion_with_retry(
         [system_msg, user_msg],
         response_format={"type": "json_object"},
-        max_tokens=350
+        max_tokens=280,
     )
-    plan = json.loads(resp.choices[0].message.content)["plan"]
-    # →  [{'role':'breakfast','place':'…'}, …]
-    return plan          # list[dict]
+    return json.loads(resp.choices[0].message.content)["plan"]
 
 
-def _top_up_places(itinerary, day, current, already_visited):
-    """
-    Se ainda faltarem itens para completar os 6 slots, pede ao GPT
-    apenas os papéis ausentes (preservando o formato dict).
-    """
-    needed_roles = [
-        r for r in ("breakfast", "morning", "lunch",
-                    "afternoon", "dinner", "evening")
-        if r not in {c["role"] for c in current}
-    ]
-    if not needed_roles:
-        return current                                # já completo
-
-    visited = ", ".join(already_visited) or "None"
-    roles_str = ", ".join(needed_roles)
-
-    sys_msg = {
-        "role": "system",
-        "content":
-            "Return ONLY valid JSON like "
-            '{"plan":[{"role":"breakfast","place":"Padaria Y"}, …]}',
-    }
-    user_msg = {
-        "role": "user",
-        "content": (
-            f"Destination: {itinerary.destination}\n"
-            f"Need NEW places ONLY for these roles: {roles_str}\n"
-            f"Do NOT repeat: {visited}"
-        ),
-    }
-    try:
-        resp = openai_chatcompletion_with_retry(
-            [sys_msg, user_msg],
-            response_format={"type": "json_object"},
-            max_tokens=250,
-        )
-        extra = json.loads(resp.choices[0].message.content).get("plan", [])
-        # garante que só entra o que realmente faltava
-        current.extend([obj for obj in extra if obj["role"] in needed_roles])
-    except Exception as e:
-        logger.error(f"[_top_up_places] {e}")
-
-    return current
 
 
-def get_place_coordinates(place_name, reference_location="48.8566,2.3522", destination=None, radius=5000):
-    """
-    Use Google Places Text Search to get coordinates for a place name.
-    """
-    base_url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
-    query = f"{place_name}, {destination}" if destination else place_name
-    params = {
-        "query": query,
-        "location": reference_location,
-        "radius": radius,
-        "key": settings.GOOGLEMAPS_KEY,
-    }
-
-    try:
-        response = request_with_retry(base_url, params=params, max_attempts=3)
-        data = response.json()
-        if data["status"] == "OK" and data["results"]:
-            location = data["results"][0]["geometry"]["location"]
-            return location["lat"], location["lng"]
-        else:
-            logger.warning(f"[get_place_coordinates] No results for '{query}'. Status={data.get('status')}")
-            return None, None
-    except Exception as e:
-        logger.error(f"[get_place_coordinates] Error fetching coordinates: {e}")
-        return None, None
 
 
-def build_distance_matrix(locations):
-    """
-    Build a distance matrix (in meters) using Google Distance Matrix API.
-    """
-    base_url = "https://maps.googleapis.com/maps/api/distancematrix/json"
-    coords = [f"{loc['lat']},{loc['lng']}" for loc in locations]
-    params = {
-        "origins": "|".join(coords),
-        "destinations": "|".join(coords),
-        "key": settings.GOOGLEMAPS_KEY,
-        "units": "metric"
-    }
-    try:
-        response = request_with_retry(base_url, params=params, max_attempts=3)
-        data = response.json()
-        if data.get('status') != 'OK':
-            logger.warning(f"[build_distance_matrix] Status not OK: {data}")
-            return None
-
-        matrix = []
-        for row in data['rows']:
-            distances_row = []
-            for element in row['elements']:
-                distances_row.append(
-                    element['distance']['value'] if element['status'] == 'OK' else float('inf')
-                )
-            matrix.append(distances_row)
-        return matrix
-    except Exception as e:
-        logger.error(f"[build_distance_matrix] Error building matrix: {e}")
-        return None
 
 
-def find_optimal_route(locations, distance_matrix):
-    """
-    Simple nearest-neighbor heuristic: start at index 0, then always go to the closest unvisited location.
-    """
-    if not locations or not distance_matrix:
-        return []
-
-    n = len(locations)
-    unvisited = set(range(n))
-    route = [0]
-    current = 0
-    unvisited.remove(0)
-
-    while unvisited:
-        nearest = min(unvisited, key=lambda i: distance_matrix[current][i])
-        route.append(nearest)
-        unvisited.remove(nearest)
-        current = nearest
-
-    return route
 
 
 def generate_day_text_gpt(
@@ -650,78 +606,60 @@ def search_place_in_google_maps(place_name, location="48.8566,2.3522", destinati
 
 
 def plan_one_day_itinerary(itinerary, day, already_visited=None):
-    """
-    Cria o planejamento de um dia, garantindo os 6 slots fixos
-    (breakfast, morning, lunch, afternoon, dinner, evening).
-    """
-    already_visited = already_visited or []
+    already_visited = {n.lower() for n in (already_visited or [])}
 
-    # 1) pede o plano (máx. 4 tentativas até vir 6 slots válidos)
-    for _ in range(4):
-        raw_plan = suggest_places_gpt(itinerary, day.day_number, already_visited)
-        if len(raw_plan) == 6:
-            break
+    # três níveis de tolerância crescentes
+    criteria_levels = [
+        {"radius_m": 25_000, "min_rating": 3.8, "max_price": 3},   # nível 1 (estrito)
+        {"radius_m": 35_000, "min_rating": 3.5, "max_price": 4},   # nível 2
+        {"radius_m": 50_000, "min_rating": 0.0, "max_price": None} # nível 3 (liberal)
+    ]
 
-    # 2) remove duplicados / já visitados
-    filtered, seen = [], {n.lower() for n in already_visited}
-    for item in raw_plan:
-        if item["place"].lower() not in seen:
-            filtered.append(item)
-            seen.add(item["place"].lower())
+    for criteria in criteria_levels:                  # tenta 3 níveis
+        plan     = suggest_categories_gpt(itinerary, day.day_number)
+        resolved = [];  missing = []
 
-    # 3) se por algum motivo ainda não tiver 6 slots, aborta com erro amigável
-    if len(filtered) != 6:
-        msg = "GPT did not return 6 distinct places."
+        for item in plan:
+            role = item["role"];  cat = item["category"]
+            res  = search_best_place(cat, itinerary.destination,
+                                     itinerary.lat, itinerary.lng,
+                                     criteria)
+            if res and res[0].lower() not in already_visited:
+                name, lat, lng = res
+                resolved.append({"role":role,"place":name,"name":name,
+                                 "lat":lat,"lng":lng})
+                already_visited.add(name.lower())
+            else:
+                missing.append(role)
+
+        if not missing:                          # achou os 6!
+            break                                # sai do for-criteria
+
+    if missing:                                  # mesmo no nível 3 falhou
+        msg = ("Could not find valid places for roles: "
+               + ", ".join(missing))
         day.generated_text = msg
         day.save(update_fields=["generated_text"])
-        return msg, already_visited
+        return msg, []
 
-    # 4) geocodifica cada slot, preservando a ordem recebida
-    ref = (
-        f"{itinerary.lat},{itinerary.lng}"
-        if itinerary.lat and itinerary.lng
-        else "48.8566,2.3522"
-    )
-    locations = []
-    for item in filtered:
-        place_name = item["place"]
-        lat, lng   = get_place_coordinates(
-            place_name,
-            reference_location=ref,
-            destination=itinerary.destination,
-        )
-        locations.append(
-            {
-                "role":  item["role"],
-                "place": place_name,   # campo original
-                "name":  place_name,   # alias usado em partes antigas do código
-                "lat":   lat,
-                "lng":   lng,
-            }
-        )
-
-    # 5) segue exatamente como antes (roteirização, weather, GPT narrative etc.)
-    weather = get_google_weather_forecast(day.date, itinerary.lat, itinerary.lng)
-
-    raw_text = generate_day_text_gpt(
-        itinerary,
-        day,
-        locations,  # ─ já na ordem dos 6 slots
-        budget=str(itinerary.budget),
-        travelers=itinerary.travelers,
-        interests=itinerary.interests,
-        extras=itinerary.extras,
-        weather_info=weather,
-    )
+    # --- clima + narrativa exatamente como antes ---
+    weather  = get_google_weather_forecast(day.date,
+                                           itinerary.lat, itinerary.lng)
+    raw_txt  = generate_day_text_gpt(
+                   itinerary, day, resolved,
+                   budget=str(itinerary.budget),
+                   travelers=itinerary.travelers,
+                   interests=itinerary.interests,
+                   extras=itinerary.extras,
+                   weather_info=weather)
     verified = verify_and_update_places(
-        raw_text, itinerary.lat, itinerary.lng, itinerary.destination
-    )
+                   raw_txt, itinerary.lat, itinerary.lng,
+                   itinerary.destination)
 
-    day.places_visited = json.dumps(locations, ensure_ascii=False)
+    day.places_visited = json.dumps(resolved, ensure_ascii=False)
     day.generated_text = verified
-    day.save(update_fields=["places_visited", "generated_text"])
-
-    return verified, [loc["name"] for loc in locations]
+    day.save(update_fields=["places_visited","generated_text"])
+    return verified, [p["name"] for p in resolved]
 
 
 def get_google_weather_forecast(target_date, lat, lng):
@@ -808,10 +746,21 @@ def replace_single_place_in_day(day, place_index, user_observation):
         current.pop(int(place_index))
 
     new_place = suggest_one_new_place_gpt(itinerary, day, visited, user_observation)
+
     if new_place:
-        reference = f"{itinerary.lat},{itinerary.lng}" if itinerary.lat and itinerary.lng else "48.8566,2.3522"
-        latlng = get_place_coordinates(new_place, reference_location=reference, destination=itinerary.destination)
-        current.insert(int(place_index), {"name": new_place, "lat": latlng[0], "lng": latlng[1] if latlng else None})
+        res = search_place_by_name(
+            new_place,
+            itinerary.destination,
+            itinerary.lat, itinerary.lng
+        )
+        if res:
+            name, lat, lng = res
+            current.insert(
+                int(place_index),
+                {"name": name, "lat": lat, "lng": lng}
+            )
+        else:
+            logger.warning(f"[replace_single_place_in_day] '{new_place}' not found/validated – keeping original list")
 
     weather = get_google_weather_forecast(day.date, itinerary.lat, itinerary.lng)
     raw_text = generate_day_text_gpt(itinerary, day, current, budget=str(itinerary.budget),
