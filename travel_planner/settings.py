@@ -14,6 +14,9 @@ GOOGLEMAPS_KEY = os.getenv('GOOGLEMAPS_KEY')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = []
 
+REQUEST_TIMEOUT      = 15        # segundos em todas as chamadas externas
+MAX_ITINERARY_DAYS   = 7
+
 # Service account for Google APIs
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.join(BASE_DIR, 'config/credentials.json')
 

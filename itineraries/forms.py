@@ -1,6 +1,7 @@
 # forms.py
 
 from django import forms
+from django.conf import settings
 
 from .models import Day, Itinerary, Review
 
@@ -16,6 +17,20 @@ class ItineraryForm(forms.ModelForm):
             'travelers',
             'extras',
         ]
+
+    def clean(self):
+        cleaned = super().clean()
+        start  = cleaned.get("start_date")
+        end    = cleaned.get("end_date")
+
+        if start and end and (end - start).days + 1 > settings.MAX_ITINERARY_DAYS:
+            raise forms.ValidationError(
+                (f"Maximum itinerary length is {settings.MAX_ITINERARY_DAYS} days.")
+            )
+        if end and start and end < start:
+            raise forms.ValidationError(("End date must be after start date."))
+
+        return cleaned
 
 
 class DayForm(forms.ModelForm):

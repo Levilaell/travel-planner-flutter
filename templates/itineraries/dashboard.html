@@ -354,7 +354,10 @@ function fetchPhotosForPlaces(dayId, placesJson, destination) {
       `?input=${encodeURIComponent(query)}` +
       `&inputtype=textquery&fields=photos&key={{ googlemaps_key }}`;
 
-    fetch("{% url 'proxy_google_places' %}?url=" + encodeURIComponent(googleUrl))
+      fetch("{% url 'proxy_google_places' %}?url=" + encodeURIComponent(googleUrl), {
+        credentials: "same-origin",
+        headers: { "X-CSRFToken": getCSRF() }
+      })
       .then(r => r.json())
       .then(data => {
         let photoUrl;
@@ -372,9 +375,7 @@ function fetchPhotosForPlaces(dayId, placesJson, destination) {
 }
 </script>
 
-<script id="places-{{ d.id }}" type="application/json">
-  {{ d.places_visited|safe }}
-</script>
+
 
 <script>
 /* ---------- LOADER / FORM ---------- */

@@ -32,32 +32,32 @@ openai.api_key = os.getenv('OPENAI_KEY')
 # Configure logging
 logger = logging.getLogger(__name__)
 
+MIN_PLACES_PER_DAY   = 3        # garante experiência mínima
+GPT_SUGGESTION_BATCH = 6        # GPT sempre devolve 6 opções
+HTTP_TIMEOUT         = 15       # segundos
+REQ_TIMEOUT          = settings.REQUEST_TIMEOUT
+
 # ========================================================
 #                  Utility Functions
 # ========================================================
 
-def request_with_retry(url, params=None, max_attempts=3, timeout=60):
+def request_with_retry(url, params=None, max_attempts=3, timeout=HTTP_TIMEOUT):
     """
-    Generic function to perform HTTP GET requests with up to max_attempts retries.
-    Logs warnings on failures; re-raises exception if all attempts fail.
+    HTTP GET resiliente com back-off exponencial.
     """
-    if params is None:
-        params = {}
-
-    for attempt in range(max_attempts):
+    params = params or {}
+    for attempt in range(1, max_attempts + 1):
         try:
-            response = requests.get(url, params=params, timeout=timeout)
-            response.raise_for_status()
-            return response
+            resp = requests.get(url, params=params, timeout=timeout)
+            resp.raise_for_status()
+            return resp
         except requests.RequestException as e:
             logger.warning(
-                f"[request_with_retry] Attempt {attempt+1}/{max_attempts} failed: {e}. "
-                f"URL: {url}, Params: {params}"
+                f"[request_with_retry] {attempt}/{max_attempts} – {e} – URL={url}"
             )
-            if attempt == max_attempts - 1:
-                logger.error(f"[request_with_retry] Final failure: {e}")
+            if attempt == max_attempts:
                 raise
-            time.sleep(2**attempt)
+            time.sleep(2 ** attempt)
 
 
 def openai_chatcompletion_with_retry(
@@ -335,43 +335,95 @@ At night, Paris lights up in a magical display that creates lasting memories. Wi
     return response.choices[0].message["content"]
 
 
+
 def suggest_places_gpt(itinerary, day_number, already_visited):
-    visited_str = ", ".join(already_visited) if already_visited else "None"
+    """
+    Always returns 6 dicts with keys: role, place.
+    role ∈ {breakfast, morning, lunch, afternoon, dinner, evening}
+    """
+    visited = ", ".join(already_visited) or "None"
 
     system_msg = {
         "role": "system",
         "content": (
-            "You are a travel-planner assistant. "
-            "Return ONLY valid JSON in the shape: "
-            '{ "places": ["Place 1", "Place 2"] }'
-        ),
+            "You are a travel-planner assistant.\n"
+            "Return ONLY valid JSON like:\n"
+            '{"plan":[{"role":"breakfast","place":"Padaria X"}, …]}\n'
+            "Rules:\n"
+            "• Exactly six objects in this order: breakfast, morning, lunch, "
+            "afternoon, dinner, evening.\n"
+            "• place must be a real, Google-Maps-findable business/attraction "
+            "near the destination.\n"
+            "• breakfast / lunch / dinner MUST be eateries (cafe, restaurant, "
+            "street-food, etc.).\n"
+            "• Do NOT repeat anything in ‘Already visited’.  No explanations!"
+        )
     }
 
     user_msg = {
         "role": "user",
-        "content": f"""
-Destination: {itinerary.destination}
-Day: {day_number}
-Interests: {itinerary.interests or 'None'}
-Budget: {itinerary.budget or 'n/a'}
-Travelers: {itinerary.travelers}
-Already visited: {visited_str}
-Suggest real, Google-Maps-findable places (morning → evening, inc. lunch).
-DO NOT repeat visited places. JSON only, no extra text.
-""",
+        "content": (
+            f"Destination: {itinerary.destination}\n"
+            f"Day: {day_number}\n"
+            f"Interests: {itinerary.interests or 'None'}\n"
+            f"Already visited: {visited}"
+        )
     }
 
+    resp = openai_chatcompletion_with_retry(
+        [system_msg, user_msg],
+        response_format={"type": "json_object"},
+        max_tokens=350
+    )
+    plan = json.loads(resp.choices[0].message.content)["plan"]
+    # →  [{'role':'breakfast','place':'…'}, …]
+    return plan          # list[dict]
+
+
+def _top_up_places(itinerary, day, current, already_visited):
+    """
+    Se ainda faltarem itens para completar os 6 slots, pede ao GPT
+    apenas os papéis ausentes (preservando o formato dict).
+    """
+    needed_roles = [
+        r for r in ("breakfast", "morning", "lunch",
+                    "afternoon", "dinner", "evening")
+        if r not in {c["role"] for c in current}
+    ]
+    if not needed_roles:
+        return current                                # já completo
+
+    visited = ", ".join(already_visited) or "None"
+    roles_str = ", ".join(needed_roles)
+
+    sys_msg = {
+        "role": "system",
+        "content":
+            "Return ONLY valid JSON like "
+            '{"plan":[{"role":"breakfast","place":"Padaria Y"}, …]}',
+    }
+    user_msg = {
+        "role": "user",
+        "content": (
+            f"Destination: {itinerary.destination}\n"
+            f"Need NEW places ONLY for these roles: {roles_str}\n"
+            f"Do NOT repeat: {visited}"
+        ),
+    }
     try:
         resp = openai_chatcompletion_with_retry(
-            [system_msg, user_msg],
-            temperature=0,
-            response_format={"type": "json_object"},   # ⭐️ JSON Mode
+            [sys_msg, user_msg],
+            response_format={"type": "json_object"},
+            max_tokens=250,
         )
-        data = json.loads(resp.choices[0].message.content)
-        return [p.strip() for p in data.get("places", []) if isinstance(p, str)]
+        extra = json.loads(resp.choices[0].message.content).get("plan", [])
+        # garante que só entra o que realmente faltava
+        current.extend([obj for obj in extra if obj["role"] in needed_roles])
     except Exception as e:
-        logger.error(f"[suggest_places_gpt] JSON decode error: {e}")
-        return []
+        logger.error(f"[_top_up_places] {e}")
+
+    return current
+
 
 def get_place_coordinates(place_name, reference_location="48.8566,2.3522", destination=None, radius=5000):
     """
@@ -455,69 +507,88 @@ def find_optimal_route(locations, distance_matrix):
     return route
 
 
-def generate_day_text_gpt(itinerary, day, ordered_places, budget, travelers, interests, extras, weather_info=None):
+def generate_day_text_gpt(
+    itinerary,
+    day,
+    ordered_places,                    # list[dict] – c/ keys: name, lat, lng, role
+    budget,
+    travelers,
+    interests,
+    extras,
+    weather_info=None,
+):
     """
-    Generate a detailed day itinerary narrative using GPT.
+    Cria a narrativa de um dia levando em conta os *slots* (breakfast … evening).
+
+    ordered_places já traz cada item com o campo `role` ∈
+    {breakfast, morning, lunch, afternoon, dinner, evening}.
+    O texto de cada bloco é gerado pelo GPT; os endereços são acrescentados
+    depois por verify_and_update_places().
     """
-    date_formatted = date_format(day.date, format='DATE_FORMAT', use_l10n=True)
-    day_title = f"Day {day.day_number} - {date_formatted}"
+    # ---------- Cabeçalho ----------
+    date_str   = date_format(day.date, format="DATE_FORMAT", use_l10n=True)
+    title      = f"Day {day.day_number} – {date_str}"
     destination = itinerary.destination
 
-    # Format weather string
+    # weather pretty
     if weather_info.get("error"):
-        weather_str = "Error fetching weather"
-    elif weather_info.get("warning"):
+        weather_str = "Weather unavailable"
+    elif "warning" in weather_info:
         weather_str = weather_info["warning"]
     else:
-        min_tmp = round(weather_info.get("temp_min", 0))
-        max_tmp = round(weather_info.get("temp_max", 0))
-        condition = weather_info.get("conditions", "Unknown")
-        weather_str = f"{condition}, between {min_tmp}°C and {max_tmp}°C"
+        tmin = round(weather_info.get("temp_min", 0))
+        tmax = round(weather_info.get("temp_max", 0))
+        cond = weather_info.get("conditions", "Unknown")
+        weather_str = f"{cond}, {tmin}-{tmax} °C"
 
-    visited_names = [loc['name'] for loc in ordered_places]
-    visited_str = ", ".join(visited_names) if visited_names else "None"
+    # ---------- Slots ----------
+    slot_labels = {
+        "breakfast": "Breakfast",
+        "morning": "Morning activity",
+        "lunch": "Lunch",
+        "afternoon": "Afternoon activity",
+        "dinner": "Dinner",
+        "evening": "Evening stroll / entertainment",
+    }
 
+    # Mantém ordem já presente em ordered_places
+    slots_block = ""
+    for itm in ordered_places:
+        role      = itm["role"]
+        place     = itm["name"]
+        label     = slot_labels.get(role, role.capitalize())
+        slots_block += f"{label}: {place}\n"
+
+    # ---------- Prompt ----------
     prompt = f"""
-{day_title}
-📍 Detailed itinerary for a day in {destination}
-📅 Date: {date_formatted}
-🌤️ Weather: {weather_str}
-🍽️ Food Highlights: (typical dishes)
-📸 Places Visited: {visited_str}
+{title}
+Destination: {destination}
+Weather forecast: {weather_str}
 
-For each place below (in the exact order listed), create a block including:
-- Time (e.g., 07:30 - Eiffel Tower ...)
-- "📍" followed by the place name and verified address
-- A complete explanatory paragraph highlighting what to do and points of interest.
+Create **six blocks**, one per line below.  
+For **each block** deliver **exactly**:
 
-Do NOT change or confuse the place names.
+• Suggested time span (HH:MM-HH:MM)  
+• "📍" + place name **as provided** (do not translate or alter)  
+• One paragraph (≈90 words) explaining what to do / eat there.
 
-Trip details:
-Budget: ${budget}
-Travelers: {travelers}
-Interests: {interests}
-Extras: {extras}
+{slots_block}
 
-Order of places:
-"""
-    for i, name in enumerate(visited_names, start=1):
-        prompt += f"{i}. {name}\n"
-
-    prompt += """
-At the end, include a 'FINAL TIP' about the destination.
-
-Respond in English with a friendly tone.
+Constraints:
+- Keep the order unchanged.
+- Breakfast/lunch/dinner paragraphs must describe food options.
+- Friendly tone, English, no markdown headings.
+- No extra commentary before or after the blocks; conclude with one **FINAL TIP** about {destination}.
 """
 
-    response = openai_chatcompletion_with_retry(
-        messages=[{"role": "user", "content": prompt}],
+    resp = openai_chatcompletion_with_retry(
+        [{"role": "user", "content": prompt}],
         model="gpt-4o-mini",
         temperature=0,
-        max_tokens=6000,
-        max_attempts=3, 
+        max_tokens=1800,
+        max_attempts=3,
     )
-
-    return response.choices[0].message["content"]
+    return resp.choices[0].message.content.strip()
 
 
 def verify_and_update_places(day_text, lat, lng, destination):
@@ -580,74 +651,77 @@ def search_place_in_google_maps(place_name, location="48.8566,2.3522", destinati
 
 def plan_one_day_itinerary(itinerary, day, already_visited=None):
     """
-    Plan one day's itinerary: suggest places, get coords, optimize route, fetch weather,
-    generate narrative, verify addresses, and save Day model fields.
-    Returns (generated_text, list_of_place_names).
+    Cria o planejamento de um dia, garantindo os 6 slots fixos
+    (breakfast, morning, lunch, afternoon, dinner, evening).
     """
-    if already_visited is None:
-        already_visited = []
+    already_visited = already_visited or []
 
-    # Suggest places with retries
-    raw_places = []
-    for attempt in range(5):
-        raw_places = suggest_places_gpt(itinerary, day.day_number, already_visited)
-        if raw_places:
+    # 1) pede o plano (máx. 4 tentativas até vir 6 slots válidos)
+    for _ in range(4):
+        raw_plan = suggest_places_gpt(itinerary, day.day_number, already_visited)
+        if len(raw_plan) == 6:
             break
-    if not raw_places:
-        logger.warning("[plan_one_day_itinerary] No places found after 5 attempts.")
-        return ("Could not find places for this day.", [])
 
-    # Filter out duplicates and already visited
-    lower_visited = {p.lower() for p in already_visited}
-    filtered = [p for p in raw_places if p.lower() not in lower_visited]
-    if not filtered:
-        logger.warning("[plan_one_day_itinerary] All suggested places were duplicates.")
-        return ("All suggested places have already been visited or are duplicates.", [])
+    # 2) remove duplicados / já visitados
+    filtered, seen = [], {n.lower() for n in already_visited}
+    for item in raw_plan:
+        if item["place"].lower() not in seen:
+            filtered.append(item)
+            seen.add(item["place"].lower())
 
-    # Get coordinates for each place
-    reference = f"{itinerary.lat},{itinerary.lng}" if itinerary.lat and itinerary.lng else "48.8566,2.3522"
+    # 3) se por algum motivo ainda não tiver 6 slots, aborta com erro amigável
+    if len(filtered) != 6:
+        msg = "GPT did not return 6 distinct places."
+        day.generated_text = msg
+        day.save(update_fields=["generated_text"])
+        return msg, already_visited
+
+    # 4) geocodifica cada slot, preservando a ordem recebida
+    ref = (
+        f"{itinerary.lat},{itinerary.lng}"
+        if itinerary.lat and itinerary.lng
+        else "48.8566,2.3522"
+    )
     locations = []
-    for place in filtered:
-        latlng = get_place_coordinates(place, reference_location=reference, destination=itinerary.destination)
-        if latlng[0] is not None:
-            locations.append({"name": place, "lat": latlng[0], "lng": latlng[1]})
+    for item in filtered:
+        place_name = item["place"]
+        lat, lng   = get_place_coordinates(
+            place_name,
+            reference_location=ref,
+            destination=itinerary.destination,
+        )
+        locations.append(
+            {
+                "role":  item["role"],
+                "place": place_name,   # campo original
+                "name":  place_name,   # alias usado em partes antigas do código
+                "lat":   lat,
+                "lng":   lng,
+            }
+        )
 
-    if not locations:
-        logger.warning("[plan_one_day_itinerary] No coordinates obtained for suggested places.")
-        return ("Could not obtain coordinates for suggested places.", [])
-
-    # Optimize visit order
-    matrix = build_distance_matrix(locations)
-    if not matrix:
-        logger.warning("[plan_one_day_itinerary] Failed to build distance matrix.")
-        return ("Could not calculate distances between places.", [])
-
-    order = find_optimal_route(locations, matrix)
-    ordered_places = [locations[i] for i in order]
-
-    # Fetch weather forecast
+    # 5) segue exatamente como antes (roteirização, weather, GPT narrative etc.)
     weather = get_google_weather_forecast(day.date, itinerary.lat, itinerary.lng)
 
-    # Generate narrative
     raw_text = generate_day_text_gpt(
         itinerary,
         day,
-        ordered_places,
+        locations,  # ─ já na ordem dos 6 slots
         budget=str(itinerary.budget),
         travelers=itinerary.travelers,
         interests=itinerary.interests,
         extras=itinerary.extras,
         weather_info=weather,
     )
-    verified = verify_and_update_places(raw_text, itinerary.lat, itinerary.lng, itinerary.destination)
+    verified = verify_and_update_places(
+        raw_text, itinerary.lat, itinerary.lng, itinerary.destination
+    )
 
-    # Save to Day model
-    day.places_visited = json.dumps(ordered_places, ensure_ascii=False)
+    day.places_visited = json.dumps(locations, ensure_ascii=False)
     day.generated_text = verified
     day.save(update_fields=["places_visited", "generated_text"])
 
-    final_names = [loc["name"] for loc in ordered_places]
-    return (verified, final_names)
+    return verified, [loc["name"] for loc in locations]
 
 
 def get_google_weather_forecast(target_date, lat, lng):

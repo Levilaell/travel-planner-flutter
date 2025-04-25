@@ -4,6 +4,7 @@ import base64
 import json
 import logging
 import os
+import re
 import time
 import urllib.parse
 from datetime import timedelta
@@ -30,7 +31,8 @@ load_dotenv()
 openai.api_key = os.getenv('OPENAI_KEY')
 
 logger = logging.getLogger(__name__)
-
+PLACES_RE = re.compile(r"^https://maps\.googleapis\.com/maps/api/place/[\w/]+", re.I)
+HTTP_TIMEOUT         = 15
 
 def build_markers_json(itinerary):
     """
@@ -115,7 +117,12 @@ def dashboard_view(request):
 
             return redirect(f"{reverse('dashboard')}?new_itinerary_id={itinerary.id}")
         else:
-            itineraries = Itinerary.objects.filter(user=request.user).order_by('-created_at')
+            itineraries = (
+                Itinerary.objects
+                .filter(user=request.user)
+                .prefetch_related("days")          # evita consultas extras
+                .order_by("-created_at")
+            )
             for it in itineraries:
                 it.markers_json = build_markers_json(it)
             return render(request, 'itineraries/dashboard.html', {
@@ -259,24 +266,29 @@ def replace_place_view(request):
 
     return redirect('dashboard')
 
-
-
-def proxy_google_places(request):
-    encoded_url = request.GET.get("url")
-    if not encoded_url or "maps.googleapis.com/maps/api/place" not in encoded_url:
-        return JsonResponse({"error": "URL inválida ou ausente"}, status=400)
-
-    # Decodifica a URL para remover a duplo codificação
-    url = urllib.parse.unquote(encoded_url)
+def _safe_proxy(url):
     try:
-        response = requests.get(url, timeout=10)
-        return JsonResponse(response.json(), safe=False)
+        resp = requests.get(url, timeout=HTTP_TIMEOUT)
+        return JsonResponse(resp.json(), safe=False, status=resp.status_code)
     except Exception as e:
+        logger.error(f"[proxy] {e}")
         return JsonResponse({"error": str(e)}, status=500)
 
 
 
+def proxy_google_places(request):
+    enc_url = request.GET.get("url", "")
+    url = urllib.parse.unquote(enc_url)
+    if not PLACES_RE.match(url):
+        return JsonResponse({"error": "Invalid Google Places URL"}, status=400)
+    return _safe_proxy(url)
+
+
+
 def google_photo_proxy(request):
+    ref = request.GET.get("photo_ref", "")
+    if not re.fullmatch(r"[A-Za-z0-9_\-]+", ref):
+        return HttpResponse("Invalid photo_ref", status=400)
     photo_ref = request.GET.get("photo_ref")
     if not photo_ref:
         return HttpResponse("Parâmetro ausente", status=400)
