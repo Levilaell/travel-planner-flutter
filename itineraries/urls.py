@@ -6,7 +6,6 @@ from . import chatbot_views, views
 
 urlpatterns = [
     path('dashboard/', views.dashboard_view, name='dashboard'),
-    path('chat/', chatbot_views.chatbot_view, name='chatbot_view'),
 
     # Rota p/ troca de lugar
     path('replace-place/', views.replace_place_view, name='replace_place'),
