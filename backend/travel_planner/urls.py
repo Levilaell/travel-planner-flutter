@@ -5,6 +5,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('core.urls')),
     path('accounts/', include('allauth.urls')),  # <-- adiciona isso
-    path('accounts/', include('accounts.urls')),
+    path('profile/', include('accounts.urls')),
     path('itinerary/', include('itineraries.urls'))
 ]
