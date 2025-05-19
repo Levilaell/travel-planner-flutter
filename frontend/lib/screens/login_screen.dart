@@ -1,62 +1,48 @@
+// lib/screens/login_screen.dart
+
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
-
+  const LoginScreen({Key? key}) : super(key: key);
   @override
-  _LoginScreenState createState() => _LoginScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _formKey = GlobalKey<FormState>();
+  final _formKey            = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _loading = false;
+  bool _loading              = false;
   String? _errorMessage;
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
-      _loading = true;
+      _loading      = true;
       _errorMessage = null;
     });
 
-    final url = Uri.parse('http://127.0.0.1:8000/api/token/');
-    try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'username': _usernameController.text,
-          'password': _passwordController.text,
-        }),
+    final success = await AuthService.login(
+      _usernameController.text.trim(),
+      _passwordController.text,
+    );
+
+    setState(() {
+      _loading = false;
+    });
+
+    if (success) {
+      final token = await AuthService.getAccessToken();
+      Navigator.pushReplacementNamed(
+        context,
+        '/dashboard',
+        arguments: token,
       );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final accessToken = data['access'];
-
-        // Redireciona para /dashboard, passando o token como argumento
-        Navigator.pushReplacementNamed(
-          context,
-          '/dashboard',
-          arguments: accessToken,
-        );
-      } else {
-        setState(() {
-          _errorMessage = 'Invalid credentials';
-        });
-      }
-    } catch (e) {
+    } else {
       setState(() {
-        _errorMessage = 'Login failed: $e';
-      });
-    } finally {
-      setState(() {
-        _loading = false;
+        _errorMessage = 'Usuário ou senha inválidos';
       });
     }
   }
@@ -66,7 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 30),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Form(
             key: _formKey,
             child: Column(
@@ -74,47 +60,49 @@ class _LoginScreenState extends State<LoginScreen> {
                 const Text(
                   'plantrip.ai',
                   style: TextStyle(
-                    fontSize: 28,
+                    fontSize: 32,
                     fontWeight: FontWeight.bold,
                     color: Colors.deepPurple,
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 32),
+
                 TextFormField(
                   controller: _usernameController,
                   decoration: const InputDecoration(labelText: 'Username'),
-                  validator:
-                      (v) =>
-                          v == null || v.isEmpty ? 'Enter your username' : null,
+                  validator: (v) =>
+                      v == null || v.isEmpty ? 'Informe seu usuário' : null,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
+
                 TextFormField(
                   controller: _passwordController,
                   decoration: const InputDecoration(labelText: 'Password'),
                   obscureText: true,
-                  validator:
-                      (v) =>
-                          v == null || v.isEmpty ? 'Enter your password' : null,
+                  validator: (v) =>
+                      v == null || v.isEmpty ? 'Informe sua senha' : null,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
+
                 if (_errorMessage != null)
-                  Text(
-                    _errorMessage!,
-                    style: const TextStyle(color: Colors.red),
-                  ),
-                const SizedBox(height: 20),
+                  Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+                if (_errorMessage != null) const SizedBox(height: 12),
+
                 SizedBox(
                   width: double.infinity,
-                  height: 50,
+                  height: 48,
                   child: ElevatedButton(
                     onPressed: _loading ? null : _login,
-                    child:
-                        _loading
-                            ? const CircularProgressIndicator(
-                              color: Colors.white,
-                            )
-                            : const Text('Login'),
+                    child: _loading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text('Login'),
                   ),
+                ),
+                const SizedBox(height: 12),
+
+                TextButton(
+                  onPressed: () => Navigator.pushNamed(context, '/register'),
+                  child: const Text("Não tenho conta – Criar nova"),
                 ),
               ],
             ),

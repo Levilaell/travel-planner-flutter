@@ -1,11 +1,12 @@
+// lib/screens/create_itinerary_screen.dart
+
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class CreateItineraryScreen extends StatefulWidget {
   final String token;
-  const CreateItineraryScreen({Key? key, required this.token})
-    : super(key: key);
+  const CreateItineraryScreen({Key? key, required this.token}) : super(key: key);
 
   @override
   State<CreateItineraryScreen> createState() => _CreateItineraryScreenState();
@@ -21,6 +22,8 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen> {
   DateTime? _startDate;
   DateTime? _endDate;
   List<String> _selectedInterests = [];
+  bool _isLoading = false; // <-- flag de loading
+
   final _interestsOptions = [
     'Culture',
     'Gastronomy',
@@ -40,6 +43,8 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen> {
       return;
     }
 
+    setState(() => _isLoading = true);
+
     final url = Uri.parse('http://127.0.0.1:8000/itinerary/api/itineraries/');
     final body = {
       'destination': _destinationController.text,
@@ -55,30 +60,31 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen> {
       final response = await http.post(
         url,
         headers: {
-          'Authorization': 'Bearer ${widget.token}',
+          'Authorization': 'Token ${widget.token}',
           'Content-Type': 'application/json',
         },
         body: json.encode(body),
       );
 
       if (response.statusCode == 201) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) Navigator.of(context).pop(true);
-        });
+        // volta pra dashboard e recarrega
+        if (mounted) {
+          Navigator.of(context).pop(true);
+        }
       } else {
         final msg = response.body;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Erro ao criar roteiro: ${response.statusCode}\n$msg',
-            ),
+            content: Text('Erro ao criar roteiro: ${response.statusCode}\n$msg'),
           ),
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Erro ao criar roteiro: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao criar roteiro: $e')),
+      );
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -86,75 +92,77 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Create Itinerary')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              TextFormField(
-                controller: _destinationController,
-                decoration: const InputDecoration(labelText: 'Destination'),
-                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-              ),
-              const SizedBox(height: 10),
-              Row(
+      body: Stack(
+        children: [
+          // Form principal
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Form(
+              key: _formKey,
+              child: ListView(
                 children: [
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () async {
-                        final date = await showDatePicker(
-                          context: context,
-                          initialDate: DateTime.now(),
-                          firstDate: DateTime(2020),
-                          lastDate: DateTime(2100),
-                        );
-                        if (date != null) setState(() => _startDate = date);
-                      },
-                      child: Text(
-                        _startDate == null
-                            ? 'Start Date'
-                            : 'Start: ${_startDate!.toLocal().toString().split(' ')[0]}',
-                      ),
-                    ),
+                  TextFormField(
+                    controller: _destinationController,
+                    decoration: const InputDecoration(labelText: 'Destination'),
+                    validator: (v) => v == null || v.isEmpty ? 'Required' : null,
                   ),
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () async {
-                        final date = await showDatePicker(
-                          context: context,
-                          initialDate: _startDate ?? DateTime.now(),
-                          firstDate: DateTime(2020),
-                          lastDate: DateTime(2100),
-                        );
-                        if (date != null) setState(() => _endDate = date);
-                      },
-                      child: Text(
-                        _endDate == null
-                            ? 'End Date'
-                            : 'End: ${_endDate!.toLocal().toString().split(' ')[0]}',
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () async {
+                            final date = await showDatePicker(
+                              context: context,
+                              initialDate: DateTime.now(),
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2100),
+                            );
+                            if (date != null) setState(() => _startDate = date);
+                          },
+                          child: Text(
+                            _startDate == null
+                                ? 'Start Date'
+                                : 'Start: ${_startDate!.toLocal().toString().split(' ')[0]}',
+                          ),
+                        ),
                       ),
-                    ),
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () async {
+                            final date = await showDatePicker(
+                              context: context,
+                              initialDate: _startDate ?? DateTime.now(),
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2100),
+                            );
+                            if (date != null) setState(() => _endDate = date);
+                          },
+                          child: Text(
+                            _endDate == null
+                                ? 'End Date'
+                                : 'End: ${_endDate!.toLocal().toString().split(' ')[0]}',
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              TextFormField(
-                controller: _budgetController,
-                decoration: const InputDecoration(labelText: 'Budget'),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _travelersController,
-                decoration: const InputDecoration(labelText: 'Travelers'),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 20),
-              const Text('Interests'),
-              Wrap(
-                spacing: 8,
-                children:
-                    _interestsOptions.map((interest) {
+                  TextFormField(
+                    controller: _budgetController,
+                    decoration: const InputDecoration(labelText: 'Budget'),
+                    keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: 10),
+                  TextFormField(
+                    controller: _travelersController,
+                    decoration: const InputDecoration(labelText: 'Travelers'),
+                    keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: 20),
+                  const Text('Interests'),
+                  Wrap(
+                    spacing: 8,
+                    children: _interestsOptions.map((interest) {
                       final selected = _selectedInterests.contains(interest);
                       return FilterChip(
                         label: Text(interest),
@@ -170,24 +178,46 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen> {
                         },
                       );
                     }).toList(),
+                  ),
+                  const SizedBox(height: 20),
+                  TextFormField(
+                    controller: _extrasController,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Extras / Observations',
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: _isLoading ? null : _submitForm,
+                    child: const Text('Generate Itinerary'),
+                  ),
+                ],
               ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _extrasController,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Extras / Observations',
+            ),
+          ),
+
+          // Overlay de loading
+          if (_isLoading)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.5),
+                child: const Center(
+                  child: CircularProgressIndicator(),
                 ),
               ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _submitForm,
-                child: const Text('Generate Itinerary'),
-              ),
-            ],
-          ),
-        ),
+            ),
+        ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _destinationController.dispose();
+    _budgetController.dispose();
+    _travelersController.dispose();
+    _extrasController.dispose();
+    super.dispose();
   }
 }
