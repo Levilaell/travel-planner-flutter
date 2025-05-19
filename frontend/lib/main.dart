@@ -1,6 +1,9 @@
+// lib/main.dart
+
 import 'package:flutter/material.dart';
-import 'screens/dashboard_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/register_screen.dart';
+import 'screens/dashboard_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -8,7 +11,6 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -17,16 +19,14 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.deepPurple,
         scaffoldBackgroundColor: const Color(0xFFF7F7F7),
-        inputDecorationTheme: const InputDecorationTheme(
-          border: OutlineInputBorder(),
-        ),
+        inputDecorationTheme: const InputDecorationTheme(border: OutlineInputBorder()),
       ),
       initialRoute: '/',
       routes: {
-        '/': (context) => const LoginScreen(),
-        // Aqui lemos o argumento `token` e o repassamos ao DashboardScreen:
-        '/dashboard': (context) {
-          final token = ModalRoute.of(context)!.settings.arguments as String;
+        '/':         (_) => const LoginScreen(),
+        '/register': (_) => const RegisterScreen(),
+        '/dashboard': (ctx) {
+          final token = ModalRoute.of(ctx)!.settings.arguments as String;
           return DashboardScreen(token: token);
         },
       },

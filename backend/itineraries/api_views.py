@@ -10,11 +10,15 @@ from .services import (
     plan_one_day_itinerary, replace_single_place_in_day
 )
 from datetime import timedelta
+from rest_framework.authentication import TokenAuthentication
+
 
 
 class ItineraryListCreateView(generics.ListCreateAPIView):
     serializer_class = ItinerarySerializer
     permission_classes = [permissions.IsAuthenticated]
+    authentication_classes = [TokenAuthentication]  
+
 
     def get_queryset(self):
         return Itinerary.objects.filter(user=self.request.user).order_by('-created_at')
@@ -54,6 +58,7 @@ class ItineraryListCreateView(generics.ListCreateAPIView):
 class ItineraryDetailView(generics.RetrieveDestroyAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = ItinerarySerializer
+    authentication_classes = [TokenAuthentication]
 
     def get_queryset(self):
         # prefetch_related carrega os days numa única query

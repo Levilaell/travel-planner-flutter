@@ -273,22 +273,6 @@ def export_itinerary_pdf_view(request, pk):
     return response
 
 
-@login_required
-def add_review_view(request, pk):
-    itinerary = get_object_or_404(Itinerary, pk=pk, user=request.user)
-    if request.method == 'POST':
-        form = ReviewForm(request.POST)
-        if form.is_valid():
-            review = form.save(commit=False)
-            review.itinerary = itinerary
-            review.user = request.user
-            review.save()
-            return redirect('dashboard')
-    else:
-        form = ReviewForm()
-    return render(request, 'itineraries/add_review.html', {'form': form, 'itinerary': itinerary})
-
-
 
 def validate_google_place(candidate,
                           dest_lat: float, dest_lng: float,

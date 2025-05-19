@@ -11,7 +11,7 @@ class ItineraryService {
     final res = await http.get(
       url,
       headers: {
-        'Authorization': 'Bearer $token',
+        'Authorization': 'Token $token',  // <<=== CORRIGIDO!
         'Content-Type': 'application/json',
       },
     );
@@ -28,7 +28,7 @@ class ItineraryService {
     final res = await http.get(
       url,
       headers: {
-        'Authorization': 'Bearer $token',
+        'Authorization': 'Token $token',  // <<=== CORRIGIDO!
         'Content-Type': 'application/json',
       },
     );

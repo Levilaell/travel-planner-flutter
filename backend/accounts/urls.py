@@ -3,20 +3,26 @@ from django.shortcuts import redirect
 from django.urls import path
 
 from . import views
-from .api_views import CustomAuthToken, LogoutView
+from .api_views import CustomAuthToken, LogoutView, RegisterAPIView  # importe aqui
 
-# Web logout (redireciona)
+# --- ROTAS WEB (templates) ---
 def direct_logout_view(request):
     logout(request)
     return redirect('login')
 
 urlpatterns = [
-    # ROTAS WEB
+    # registro e login via html
     path('register/', views.register_view, name='register'),
-    path('login/', views.login_view, name='login'),
+    path('login/',    views.login_view,    name='login'),
     path('logout_direct/', direct_logout_view, name='logout'),
+]
 
-    # ROTAS API (Flutter / Postman)
-    path('login/', CustomAuthToken.as_view(), name='api_login'),
-    path('logout/', LogoutView.as_view(), name='api_logout'),
+# --- ROTAS API (JSON para Flutter / Postman) ---
+urlpatterns += [
+    # endpoint de registro JSON
+    path('api/register/', RegisterAPIView.as_view(), name='api_register'),
+    # endpoint de obtenção de token
+    path('api/login/',    CustomAuthToken.as_view(), name='api_login'),
+    # endpoint de logout (invalidate token etc)
+    path('api/logout/',   LogoutView.as_view(),    name='api_logout'),
 ]
