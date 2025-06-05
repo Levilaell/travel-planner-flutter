@@ -4,7 +4,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status, permissions
-from .serializers import RegisterSerializer
+from .serializers import RegisterSerializer, TravelerProfileSerializer
+from .models import TravelerProfile
 
 
 class CustomAuthToken(ObtainAuthToken):
@@ -33,3 +34,28 @@ class LogoutView(APIView):
     def post(self, request):
         request.user.auth_token.delete()
         return Response({'success': 'Logged out'})
+
+class ProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            profile = TravelerProfile.objects.get(user=request.user)
+        except TravelerProfile.DoesNotExist:
+            # Create profile if it doesn't exist
+            profile = TravelerProfile.objects.create(user=request.user)
+        
+        serializer = TravelerProfileSerializer(profile)
+        return Response(serializer.data)
+
+    def put(self, request):
+        try:
+            profile = TravelerProfile.objects.get(user=request.user)
+        except TravelerProfile.DoesNotExist:
+            profile = TravelerProfile.objects.create(user=request.user)
+        
+        serializer = TravelerProfileSerializer(profile, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

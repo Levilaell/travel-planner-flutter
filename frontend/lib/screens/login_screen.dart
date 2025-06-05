@@ -10,17 +10,18 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _formKey            = GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _loading              = false;
+  bool _loading = false;
   String? _errorMessage;
+  bool _obscurePassword = true;
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
-      _loading      = true;
+      _loading = true;
       _errorMessage = null;
     });
 
@@ -35,11 +36,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (success) {
       final token = await AuthService.getAccessToken();
-      Navigator.pushReplacementNamed(
-        context,
-        '/dashboard',
-        arguments: token,
-      );
+      if (mounted) {
+        Navigator.pushReplacementNamed(
+          context,
+          '/dashboard',
+          arguments: token,
+        );
+      }
     } else {
       setState(() {
         _errorMessage = 'Usuário ou senha inválidos';
@@ -49,60 +52,188 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    
     return Scaffold(
-      body: Center(
+      body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Form(
-            key: _formKey,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
               children: [
-                const Text(
-                  'plantrip.ai',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.deepPurple,
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                TextFormField(
-                  controller: _usernameController,
-                  decoration: const InputDecoration(labelText: 'Username'),
-                  validator: (v) =>
-                      v == null || v.isEmpty ? 'Informe seu usuário' : null,
-                ),
-                const SizedBox(height: 16),
-
-                TextFormField(
-                  controller: _passwordController,
-                  decoration: const InputDecoration(labelText: 'Password'),
-                  obscureText: true,
-                  validator: (v) =>
-                      v == null || v.isEmpty ? 'Informe sua senha' : null,
-                ),
-                const SizedBox(height: 24),
-
-                if (_errorMessage != null)
-                  Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
-                if (_errorMessage != null) const SizedBox(height: 12),
-
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: _loading ? null : _login,
-                    child: _loading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text('Login'),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                TextButton(
-                  onPressed: () => Navigator.pushNamed(context, '/register'),
-                  child: const Text("Não tenho conta – Criar nova"),
+                SizedBox(height: size.height * 0.08),
+                
+                // Hero Section
+                Column(
+                  children: [
+                        // Logo/Icon
+                        Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Icon(
+                            Icons.flight_takeoff,
+                            color: Colors.white,
+                            size: 40,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        
+                        // Title
+                        Text(
+                          'TripPlanner AI',
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF1E293B),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        
+                        Text(
+                          'Planeje viagens incríveis com inteligência artificial',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: const Color(0xFF64748B),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        
+                        SizedBox(height: size.height * 0.08),
+                        
+                        // Login Form
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          padding: const EdgeInsets.all(24),
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Fazer Login',
+                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF1E293B),
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                                
+                                // Username Field
+                                TextFormField(
+                                  controller: _usernameController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Nome de usuário',
+                                    prefixIcon: Icon(Icons.person_outline),
+                                  ),
+                                  validator: (v) => v == null || v.isEmpty ? 'Informe seu usuário' : null,
+                                ),
+                                const SizedBox(height: 20),
+                                
+                                // Password Field
+                                TextFormField(
+                                  controller: _passwordController,
+                                  obscureText: _obscurePassword,
+                                  decoration: InputDecoration(
+                                    labelText: 'Senha',
+                                    prefixIcon: const Icon(Icons.lock_outline),
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                                      ),
+                                      onPressed: () {
+                                        setState(() {
+                                          _obscurePassword = !_obscurePassword;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  validator: (v) => v == null || v.isEmpty ? 'Informe sua senha' : null,
+                                ),
+                                const SizedBox(height: 24),
+                                
+                                // Error Message
+                                if (_errorMessage != null)
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFEE2E2),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: const Color(0xFFFECACA)),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.error_outline,
+                                          color: Color(0xFFDC2626),
+                                          size: 16,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            _errorMessage!,
+                                            style: const TextStyle(
+                                              color: Color(0xFFDC2626),
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                if (_errorMessage != null) const SizedBox(height: 16),
+                                
+                                // Login Button
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 52,
+                                  child: ElevatedButton(
+                                    onPressed: _loading ? null : _login,
+                                    child: _loading
+                                        ? const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : const Text('Entrar'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 24),
+                        
+                        // Register Link
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Não tem uma conta?',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: const Color(0xFF64748B),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pushNamed(context, '/register'),
+                              child: const Text('Criar conta'),
+                            ),
+                          ],
+                        ),
+                  ],
                 ),
               ],
             ),
@@ -110,5 +241,12 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 }

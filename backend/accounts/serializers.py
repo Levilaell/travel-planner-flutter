@@ -2,6 +2,20 @@
 
 from rest_framework import serializers
 from django.contrib.auth.models import User
+from .models import TravelerProfile
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'date_joined']
+        read_only_fields = ['id', 'date_joined']
+
+class TravelerProfileSerializer(serializers.ModelSerializer):
+    user = UserProfileSerializer(read_only=True)
+    
+    class Meta:
+        model = TravelerProfile
+        fields = ['user', 'budget', 'interests', 'acessibility_needs']
 
 class RegisterSerializer(serializers.ModelSerializer):
     password2 = serializers.CharField(write_only=True)

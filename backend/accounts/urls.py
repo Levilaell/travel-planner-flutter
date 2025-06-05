@@ -3,7 +3,7 @@ from django.shortcuts import redirect
 from django.urls import path
 
 from . import views
-from .api_views import CustomAuthToken, LogoutView, RegisterAPIView  # importe aqui
+from .api_views import CustomAuthToken, LogoutView, RegisterAPIView, ProfileView  # importe aqui
 
 # --- ROTAS WEB (templates) ---
 def direct_logout_view(request):
@@ -25,4 +25,6 @@ urlpatterns += [
     path('api/login/',    CustomAuthToken.as_view(), name='api_login'),
     # endpoint de logout (invalidate token etc)
     path('api/logout/',   LogoutView.as_view(),    name='api_logout'),
+    # endpoint de perfil do usuário
+    path('api/profile/',  ProfileView.as_view(),    name='api_profile'),
 ]
