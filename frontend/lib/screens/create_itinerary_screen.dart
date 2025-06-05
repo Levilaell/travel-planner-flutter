@@ -45,7 +45,7 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen> {
 
     setState(() => _isLoading = true);
 
-    final url = Uri.parse('http://192.168.21.28:8000/itinerary/api/itineraries/');
+    final url = Uri.parse('http://127.0.0.1:8000/itinerary/api/itineraries/');
     final body = {
       'destination': _destinationController.text,
       'start_date': _startDate!.toIso8601String().split('T').first,
@@ -75,13 +75,13 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen> {
         final msg = response.body;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro ao criar roteiro: ${response.statusCode}\n$msg'),
+            content: Text('Error creating itinerary: ${response.statusCode}\n$msg'),
           ),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao criar roteiro: $e')),
+        SnackBar(content: Text('Error creating itinerary: $e')),
       );
     } finally {
       setState(() => _isLoading = false);
@@ -103,8 +103,16 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen> {
                 children: [
                   TextFormField(
                     controller: _destinationController,
-                    decoration: const InputDecoration(labelText: 'Destination'),
-                    validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                    decoration: const InputDecoration(
+                      labelText: 'Destination',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Required';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 10),
                   Row(
@@ -201,7 +209,7 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen> {
           if (_isLoading)
             Positioned.fill(
               child: Container(
-                color: Colors.black.withOpacity(0.5),
+                color: Colors.black.withValues(alpha: 0.5),
                 child: const Center(
                   child: CircularProgressIndicator(),
                 ),

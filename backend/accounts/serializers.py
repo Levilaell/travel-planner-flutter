@@ -15,7 +15,7 @@ class TravelerProfileSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = TravelerProfile
-        fields = ['user', 'budget', 'interests', 'acessibility_needs']
+        fields = ['user', 'budget', 'interests', 'acessibility_needs', 'favorite_destinations', 'phone_number', 'preferred_language']
 
 class RegisterSerializer(serializers.ModelSerializer):
     password2 = serializers.CharField(write_only=True)

@@ -2,9 +2,13 @@
 
 from django.contrib.auth.models import User  # type: ignore
 from django.db import models  # type: ignore
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
+from firebase_adapter import FirebaseModelMixin, sync_to_firestore, delete_from_firestore
+from django.conf import settings
 
 
-class Itinerary(models.Model):
+class Itinerary(FirebaseModelMixin, models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     destination = models.CharField(max_length=200)
     start_date = models.DateField()
@@ -29,7 +33,7 @@ class Itinerary(models.Model):
         return (self.end_date - self.start_date).days + 1
 
 
-class Day(models.Model):
+class Day(FirebaseModelMixin, models.Model):
     itinerary = models.ForeignKey(Itinerary, on_delete=models.CASCADE, related_name='days')
     day_number = models.PositiveIntegerField()
     date = models.DateField()
@@ -51,7 +55,7 @@ class Day(models.Model):
         return f"Dia {self.day_number} ({self.date}) - {self.itinerary.destination}"
 
 
-class Review(models.Model):
+class Review(FirebaseModelMixin, models.Model):
     itinerary = models.ForeignKey(Itinerary, on_delete=models.CASCADE, related_name='reviews')
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     rating = models.IntegerField(default=0)
@@ -60,3 +64,14 @@ class Review(models.Model):
 
     def __str__(self):
         return f"Review {self.rating} by {self.user.username} on {self.itinerary.destination}"
+
+
+# Connect signals for Firebase synchronization
+if getattr(settings, 'USE_FIREBASE', False):
+    post_save.connect(sync_to_firestore, sender=Itinerary)
+    post_save.connect(sync_to_firestore, sender=Day)
+    post_save.connect(sync_to_firestore, sender=Review)
+    
+    post_delete.connect(delete_from_firestore, sender=Itinerary)
+    post_delete.connect(delete_from_firestore, sender=Day)
+    post_delete.connect(delete_from_firestore, sender=Review)

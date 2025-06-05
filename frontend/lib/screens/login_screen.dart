@@ -45,7 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } else {
       setState(() {
-        _errorMessage = 'Usuário ou senha inválidos';
+        _errorMessage = 'Invalid username or password';
       });
     }
   }
@@ -88,7 +88,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         
                         // Title
                         Text(
-                          'TripPlanner AI',
+                          'plantrip.ai',
                           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                             fontWeight: FontWeight.w700,
                             color: const Color(0xFF1E293B),
@@ -97,7 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 8),
                         
                         Text(
-                          'Planeje viagens incríveis com inteligência artificial',
+                          'Plan amazing trips with artificial intelligence',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: const Color(0xFF64748B),
                           ),
@@ -120,7 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Fazer Login',
+                                  'Sign In',
                                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                     fontWeight: FontWeight.w600,
                                     color: const Color(0xFF1E293B),
@@ -132,10 +132,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                 TextFormField(
                                   controller: _usernameController,
                                   decoration: const InputDecoration(
-                                    labelText: 'Nome de usuário',
+                                    labelText: 'Username',
                                     prefixIcon: Icon(Icons.person_outline),
                                   ),
-                                  validator: (v) => v == null || v.isEmpty ? 'Informe seu usuário' : null,
+                                  validator: (v) => v == null || v.isEmpty ? 'Enter your username' : null,
                                 ),
                                 const SizedBox(height: 20),
                                 
@@ -144,7 +144,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   controller: _passwordController,
                                   obscureText: _obscurePassword,
                                   decoration: InputDecoration(
-                                    labelText: 'Senha',
+                                    labelText: 'Password',
                                     prefixIcon: const Icon(Icons.lock_outline),
                                     suffixIcon: IconButton(
                                       icon: Icon(
@@ -157,7 +157,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       },
                                     ),
                                   ),
-                                  validator: (v) => v == null || v.isEmpty ? 'Informe sua senha' : null,
+                                  validator: (v) => v == null || v.isEmpty ? 'Enter your password' : null,
                                 ),
                                 const SizedBox(height: 24),
                                 
@@ -207,7 +207,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                               color: Colors.white,
                                             ),
                                           )
-                                        : const Text('Entrar'),
+                                        : const Text('Sign In'),
                                   ),
                                 ),
                               ],
@@ -222,14 +222,14 @@ class _LoginScreenState extends State<LoginScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              'Não tem uma conta?',
+                              'Don\'t have an account?',
                               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 color: const Color(0xFF64748B),
                               ),
                             ),
                             TextButton(
                               onPressed: () => Navigator.pushNamed(context, '/register'),
-                              child: const Text('Criar conta'),
+                              child: const Text('Create account'),
                             ),
                           ],
                         ),

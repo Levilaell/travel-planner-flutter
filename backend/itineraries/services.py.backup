@@ -366,43 +366,27 @@ def generate_itinerary_overview(itinerary):
     Generate a trip overview using GPT, with retries and logging on error.
     """
     prompt = f"""
-You are an expert travel planner creating a comprehensive trip overview in markdown format. Generate a detailed, engaging overview using the following information:
+You are an intelligent travel planner. Generate a **general overview** for the trip:
 
-**Trip Details:**
-- Destination: {itinerary.destination}
-- Dates: {itinerary.start_date} to {itinerary.end_date}
-- Budget: ${itinerary.budget}
-- Travelers: {itinerary.travelers}
-- Interests: {itinerary.interests}
-- Extras: {itinerary.extras}
+Destination: {itinerary.destination}
+Dates: {itinerary.start_date} to {itinerary.end_date}
+Budget: ${itinerary.budget}
+Travelers: {itinerary.travelers}
+Interests: {itinerary.interests}
+Extras: {itinerary.extras}
 
-**Instructions:** Create a markdown-formatted overview (300-400 words) with the following structure:
+Use a friendly, cohesive tone, following this pattern:
 
-# 🌟 Your Amazing {itinerary.destination} Adventure
+Trip to Paris - Overview
 
-## 📍 **Trip Overview**
-Brief welcome paragraph with trip dates, budget, and excitement builder.
+Get ready for an unforgettable experience in the charming city of Paris, France, from April 15, 2025 to April 20, 2025! With a budget of 2000 BRL, explore rich culture, delicious cuisine, and iconic landmarks.
 
-## 🎯 **What to Expect**
-- **Cultural Highlights:** Major attractions and landmarks
-- **Local Experiences:** Authentic activities and hidden gems  
-- **Culinary Journey:** Must-try local dishes and dining experiences
-- **Budget-Friendly Tips:** Money-saving recommendations
+Start with a visit to the Eiffel Tower for breathtaking views. Then wander through the artistic Montmartre neighborhood and admire the Sacré-Cœur Basilica. Art lovers should spend time at the Louvre Museum, home to masterpieces like the Mona Lisa.
 
-## 🎒 **Perfect for Your Group**
-Paragraph tailored to the specific travelers and their interests.
+Don’t miss Parisian gastronomy: try croissants, quiches, and macarons at local bistros. A café by the Seine offers the perfect relaxation spot. Consider a boat tour on the Seine for unique views of monuments and bridges.
 
-## ✨ **Making Memories**
-Closing paragraph about creating unforgettable experiences.
-
-**Requirements:**
-- Use markdown headings (#, ##), **bold**, *italic* text
-- Include relevant emojis throughout
-- Create bullet points with specific recommendations
-- Maintain a friendly, enthusiastic tone
-- Focus on experiences rather than just listing places
-- Customize content based on the provided interests and extras
-- Make it feel personal and exciting"""
+At night, Paris lights up in a magical display that creates lasting memories. With a well-planned itinerary, your trip to the City of Light will be a perfect blend of exploration, culture, and flavor. Get ready to discover Paris’s charms!
+"""
 
     response = openai_chatcompletion_with_retry(
         messages=[{"role": "user", "content": prompt}],
@@ -569,14 +553,13 @@ def verify_and_update_places(day_text, lat, lng, destination):
             place_data = search_place_in_google_maps(place_candidate, location=location_str, destination=destination)
             if place_data is None:
                 new_lines.append(f"{line}")
-                new_lines.append(f"⚠️ **Warning:** Could not find '{place_candidate}' on Google Places.")
-                new_lines.append("")  # Empty line after warning
+                new_lines.append(f"> ⚠️ **Warning:** Could not find '{place_candidate}' on Google Places.")
             else:
                 address = place_data.get("formatted_address", "Address not found")
                 encoded = quote(address)
                 new_lines.append(f"{line}")
-                new_lines.append(f"📍 **Address:** {address}")
-                new_lines.append(f"🗺️ **[View on Google Maps](https://www.google.com/maps/search/?api=1&query={encoded})**")
+                new_lines.append(f"> 📍 **Address:** {address}")
+                new_lines.append(f"> 🗺️ **[View on Google Maps](https://www.google.com/maps/search/?api=1&query={encoded})**")
                 new_lines.append("")  # Empty line for spacing
         else:
             new_lines.append(line)

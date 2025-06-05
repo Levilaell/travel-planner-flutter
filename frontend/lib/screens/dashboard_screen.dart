@@ -68,7 +68,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Olá! 👋',
+                            'Hello! 👋',
                             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                               fontWeight: FontWeight.w700,
                               color: const Color(0xFF1E293B),
@@ -76,7 +76,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Pronto para sua próxima aventura?',
+                            'Ready for your next adventure?',
                             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                               color: const Color(0xFF64748B),
                             ),
@@ -117,7 +117,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Crie seu roteiro',
+                          'Create your itinerary',
                           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
@@ -125,7 +125,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Deixe nossa IA criar o roteiro perfeito para você',
+                          'Let our AI create the perfect itinerary for you',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: Colors.white.withValues(alpha: 0.9),
                           ),
@@ -143,7 +143,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             children: [
                               const Icon(Icons.add, size: 20),
                               const SizedBox(width: 8),
-                              const Text('Novo Roteiro'),
+                              const Text('New Itinerary'),
                             ],
                           ),
                         ),
@@ -162,7 +162,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Row(
                 children: [
                   Text(
-                    'Seus Roteiros',
+                    'Your Itineraries',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w600,
                       color: const Color(0xFF1E293B),
@@ -210,7 +210,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Erro ao carregar roteiros',
+                            'Error loading itineraries',
                             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               color: const Color(0xFFDC2626),
                               fontWeight: FontWeight.w600,
@@ -259,7 +259,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                           const SizedBox(height: 24),
                           Text(
-                            'Nenhum roteiro ainda',
+                            'No itineraries yet',
                             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.w600,
                               color: const Color(0xFF1E293B),
@@ -267,7 +267,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Crie seu primeiro roteiro e comece a planejar sua viagem dos sonhos!',
+                            'Create your first itinerary and start planning your dream trip!',
                             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: const Color(0xFF64748B),
                             ),
@@ -277,7 +277,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ElevatedButton.icon(
                             onPressed: _goToCreateScreen,
                             icon: const Icon(Icons.add),
-                            label: const Text('Criar Primeiro Roteiro'),
+                            label: const Text('Create First Itinerary'),
                           ),
                         ],
                       ),
@@ -393,7 +393,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    'Gerado por IA',
+                    'AI Generated',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: const Color(0xFF6366F1),
                       fontWeight: FontWeight.w500,
@@ -447,12 +447,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             BottomNavigationBarItem(
               icon: Icon(Icons.home_outlined),
               activeIcon: Icon(Icons.home),
-              label: 'Início',
+              label: 'Home',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
               activeIcon: Icon(Icons.person),
-              label: 'Perfil',
+              label: 'Profile',
             ),
           ],
         ),

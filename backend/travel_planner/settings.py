@@ -131,6 +131,19 @@ DATABASES = {
     }
 }
 
+# Firebase Configuration
+FIREBASE_CONFIG = {
+    'apiKey': os.getenv('FIREBASE_API_KEY'),
+    'authDomain': os.getenv('FIREBASE_AUTH_DOMAIN'),
+    'projectId': os.getenv('FIREBASE_PROJECT_ID'),
+    'storageBucket': os.getenv('FIREBASE_STORAGE_BUCKET'),
+    'messagingSenderId': os.getenv('FIREBASE_MESSAGING_SENDER_ID'),
+    'appId': os.getenv('FIREBASE_APP_ID'),
+}
+
+# Use Firebase as primary data store
+USE_FIREBASE = os.getenv('USE_FIREBASE', 'True') == 'True'
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

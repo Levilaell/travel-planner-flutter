@@ -5,6 +5,12 @@ class User {
   final String? firstName;
   final String? lastName;
   final DateTime dateJoined;
+  final double? budget;
+  final String? interests;
+  final bool? accessibilityNeeds;
+  final List<String>? favoriteDestinations;
+  final String? phoneNumber;
+  final String? preferredLanguage;
 
   User({
     required this.id,
@@ -13,6 +19,12 @@ class User {
     this.firstName,
     this.lastName,
     required this.dateJoined,
+    this.budget,
+    this.interests,
+    this.accessibilityNeeds,
+    this.favoriteDestinations,
+    this.phoneNumber,
+    this.preferredLanguage,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -23,6 +35,14 @@ class User {
       firstName: json['first_name'],
       lastName: json['last_name'],
       dateJoined: DateTime.parse(json['date_joined']),
+      budget: json['budget']?.toDouble(),
+      interests: json['interests'],
+      accessibilityNeeds: json['acessibility_needs'] ?? false,
+      favoriteDestinations: json['favorite_destinations'] != null
+          ? List<String>.from(json['favorite_destinations'])
+          : null,
+      phoneNumber: json['phone_number'],
+      preferredLanguage: json['preferred_language'],
     );
   }
 
@@ -34,6 +54,12 @@ class User {
       'first_name': firstName,
       'last_name': lastName,
       'date_joined': dateJoined.toIso8601String(),
+      'budget': budget,
+      'interests': interests,
+      'acessibility_needs': accessibilityNeeds,
+      'favorite_destinations': favoriteDestinations,
+      'phone_number': phoneNumber,
+      'preferred_language': preferredLanguage,
     };
   }
 }
@@ -43,12 +69,18 @@ class TravelerProfile {
   final double? budget;
   final String? interests;
   final bool accessibilityNeeds;
+  final List<String>? favoriteDestinations;
+  final String? phoneNumber;
+  final String? preferredLanguage;
 
   TravelerProfile({
     required this.user,
     this.budget,
     this.interests,
     this.accessibilityNeeds = false,
+    this.favoriteDestinations,
+    this.phoneNumber,
+    this.preferredLanguage,
   });
 
   factory TravelerProfile.fromJson(Map<String, dynamic> json) {
@@ -57,6 +89,11 @@ class TravelerProfile {
       budget: json['budget']?.toDouble(),
       interests: json['interests'],
       accessibilityNeeds: json['acessibility_needs'] ?? false,
+      favoriteDestinations: json['favorite_destinations'] != null
+          ? List<String>.from(json['favorite_destinations'])
+          : null,
+      phoneNumber: json['phone_number'],
+      preferredLanguage: json['preferred_language'],
     );
   }
 
@@ -65,6 +102,9 @@ class TravelerProfile {
       'budget': budget,
       'interests': interests,
       'acessibility_needs': accessibilityNeeds,
+      'favorite_destinations': favoriteDestinations,
+      'phone_number': phoneNumber,
+      'preferred_language': preferredLanguage,
     };
   }
 }

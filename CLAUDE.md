@@ -6,8 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a full-stack travel planning application with AI-powered itinerary generation:
 
-- **Backend**: Django 5.1.6 + Django REST Framework with SQLite database
-- **Frontend**: Flutter mobile app communicating via REST APIs
+- **Backend**: Django 5.1.6 + Django REST Framework with Firebase Firestore database
+- **Frontend**: Flutter mobile app with Firebase SDK integration
+- **Database**: Firebase Firestore for real-time data synchronization
 - **AI Integration**: OpenAI API for generating personalized travel itineraries
 - **Maps Integration**: Google Maps, Places, and Geocoding APIs
 
@@ -30,26 +31,38 @@ flutter run
 ### Environment Configuration
 - Copy `backend/.env.example` to `backend/.env` and fill in required values
 - Place Google service account credentials at `backend/config/credentials.json`
+- Follow `FIREBASE_SETUP.md` for detailed Firebase configuration
 - Required environment variables:
   - `DJANGO_SECRET_KEY`: Django secret key
   - `DEBUG`: True/False for development/production
   - `OPENAI_KEY`: OpenAI API key for itinerary generation
   - `GOOGLEMAPS_KEY`: Google Maps API key
   - `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`: For OAuth authentication
+  - `FIREBASE_*`: Firebase configuration keys (see .env.example)
+  - `USE_FIREBASE`: Set to True to enable Firebase integration
 
 ## Key Architecture Patterns
 
 ### Authentication Flow
-- Flutter app sends credentials to Django `/profile/api/login/`
-- Django returns authentication token
-- Token stored securely using `flutter_secure_storage`
-- Subsequent API calls include `Authorization: Token {token}` header
+- **Primary**: Firebase Authentication for user management
+- **Secondary**: Django token auth for API compatibility
+- Flutter app uses Firebase Auth with `firebase_auth` package
+- Real-time sync between Firebase Auth and Django User model
+- Secure storage using `flutter_secure_storage`
 
-### API Communication
-- Base URL hardcoded in Flutter: `http://192.168.21.28:8000` (development)
+### Data Flow
+- **Real-time**: Firebase Firestore for live data synchronization
+- **API Backup**: Django REST endpoints for complex operations
+- Automatic sync between Django models and Firestore collections
+- Firebase rules enforce user data isolation
+
+### API Communication (Hybrid)
+- Base URL: `http://192.168.21.28:8000` (development)
+- Firebase: Real-time data operations
+- Django API: AI generation and complex business logic
 - Main endpoints:
-  - Authentication: `/profile/api/login/`, `/profile/api/register/`
-  - Itineraries: `/itinerary/api/itineraries/`, `/itinerary/api/itineraries/{id}/`
+  - Authentication: Firebase Auth + `/profile/api/login/`
+  - Itineraries: Firestore + `/itinerary/api/itineraries/`
   - Place replacement: `/itinerary/api/replace_place/`
 
 ### AI Integration
@@ -97,12 +110,16 @@ flutter run
 ### Dependencies
 - Backend: See `requirements.txt` for Python packages
 - Frontend: See `frontend/pubspec.yaml` for Flutter dependencies
-- Key packages: OpenAI (0.28.0), WeasyPrint (PDF generation), django-allauth (OAuth)
+- Key packages: 
+  - Backend: firebase-admin (6.6.0), OpenAI (0.28.0), WeasyPrint
+  - Frontend: firebase_core, cloud_firestore, firebase_auth
 
 ## Development Notes
 
-- Database migrations handled via standard Django `manage.py migrate`
-- Flutter state management using Provider pattern
-- API responses include detailed error handling
-- PDF generation available for itineraries using WeasyPrint
-- Token-based authentication with automatic logout on token expiry
+- **Database**: Hybrid approach with Firestore primary + Django migrations for compatibility
+- **State Management**: Flutter Provider pattern + Firebase streams
+- **Real-time Updates**: Firestore listeners for live data synchronization
+- **API Responses**: Detailed error handling with Firebase error codes
+- **PDF Generation**: WeasyPrint for itinerary exports
+- **Authentication**: Firebase Auth with Django User model sync
+- **Data Migration**: Use `firebase_adapter.py` utilities for sync operations

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../models/user.dart';
+import 'profile_edit_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String token;
@@ -10,9 +12,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  String? _username;
-  String? _email;
-  Map<String, dynamic>? _profileData;
+  User? _user;
   bool _isLoading = true;
 
   @override
@@ -29,26 +29,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       
       setState(() {
         if (profileData != null) {
-          _profileData = profileData;
-          _username = profileData['user']?['username'] ?? 'Usuario';
-          _email = profileData['user']?['email'] ?? '';
-        } else {
-          _username = 'Usuario';
-          _email = '';
+          _user = User.fromJson(profileData['user'] ?? profileData);
         }
         _isLoading = false;
       });
     } catch (e) {
       setState(() {
-        _username = 'Usuario';
-        _email = '';
         _isLoading = false;
       });
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Erro ao carregar dados do perfil'),
+            content: Text('Error loading profile data'),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -63,12 +56,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        title: const Text('Confirmar Logout'),
-        content: const Text('Tem certeza que deseja sair?'),
+        title: const Text('Confirm Logout'),
+        content: const Text('Are you sure you want to sign out?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -81,7 +74,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFEF4444),
             ),
-            child: const Text('Sair'),
+            child: const Text('Sign Out'),
           ),
         ],
       ),
@@ -172,7 +165,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 // Header
                 Text(
-                  'Perfil',
+                  'Profile',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: const Color(0xFF1E293B),
@@ -180,7 +173,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Gerencie sua conta e preferências',
+                  'Manage your account and preferences',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: const Color(0xFF64748B),
                   ),
@@ -226,16 +219,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              _username ?? 'Carregando...',
+                              _user?.username ?? 'Loading...',
                               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                             const SizedBox(height: 8),
-                            if (_email?.isNotEmpty == true)
+                            if (_user?.email.isNotEmpty == true)
                               Text(
-                                _email!,
+                                _user!.email,
                                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                   color: Colors.white.withValues(alpha: 0.9),
                                 ),
@@ -251,7 +244,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
-                                'Membro Premium',
+                                'Premium Member',
                                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w600,
@@ -266,7 +259,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 // Account Options
                 Text(
-                  'Conta',
+                  'Account',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: const Color(0xFF1E293B),
@@ -276,26 +269,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 _buildProfileOption(
                   icon: Icons.person_outline,
-                  title: 'Informações Pessoais',
-                  subtitle: 'Edite seus dados pessoais',
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Funcionalidade em desenvolvimento'),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
+                  title: 'Personal Information',
+                  subtitle: 'Edit your personal data',
+                  onTap: () async {
+                    if (_user != null) {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ProfileEditScreen(user: _user!),
+                        ),
+                      );
+                      if (result == true) {
+                        _loadUserInfo();
+                      }
+                    }
                   },
                 ),
 
                 _buildProfileOption(
                   icon: Icons.security,
-                  title: 'Segurança',
-                  subtitle: 'Altere sua senha',
+                  title: 'Security',
+                  subtitle: 'Change your password',
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Funcionalidade em desenvolvimento'),
+                        content: Text('Feature in development'),
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
@@ -304,12 +302,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 _buildProfileOption(
                   icon: Icons.notifications_none,
-                  title: 'Notificações',
-                  subtitle: 'Configure suas preferências',
+                  title: 'Notifications',
+                  subtitle: 'Configure your preferences',
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Funcionalidade em desenvolvimento'),
+                        content: Text('Feature in development'),
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
@@ -330,12 +328,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 _buildProfileOption(
                   icon: Icons.help_outline,
-                  title: 'Ajuda & Suporte',
-                  subtitle: 'FAQ e contato',
+                  title: 'Help & Support',
+                  subtitle: 'FAQ and contact',
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Funcionalidade em desenvolvimento'),
+                        content: Text('Feature in development'),
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
@@ -344,12 +342,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 _buildProfileOption(
                   icon: Icons.star_outline,
-                  title: 'Avalie o App',
-                  subtitle: 'Sua opinião é importante',
+                  title: 'Rate the App',
+                  subtitle: 'Your opinion is important',
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Obrigado! Redirecionando para a loja...'),
+                        content: Text('Thank you! Redirecting to the store...'),
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
@@ -358,12 +356,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 _buildProfileOption(
                   icon: Icons.info_outline,
-                  title: 'Sobre',
-                  subtitle: 'Versão 1.0.0',
+                  title: 'About',
+                  subtitle: 'Version 1.0.0',
                   onTap: () {
                     showAboutDialog(
                       context: context,
-                      applicationName: 'TripPlanner AI',
+                      applicationName: 'plantrip.ai',
                       applicationVersion: '1.0.0',
                       applicationIcon: Container(
                         width: 64,
@@ -384,7 +382,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       children: [
                         const Text(
-                          'Planeje viagens incríveis com o poder da inteligência artificial.',
+                          'Plan amazing trips with the power of artificial intelligence.',
                         ),
                       ],
                     );
@@ -429,7 +427,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Sair da Conta',
+                                    'Sign Out',
                                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                       fontWeight: FontWeight.w600,
                                       color: const Color(0xFFEF4444),
@@ -437,7 +435,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Desconectar da sua conta',
+                                    'Disconnect from your account',
                                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                       color: const Color(0xFFEF4444),
                                     ),

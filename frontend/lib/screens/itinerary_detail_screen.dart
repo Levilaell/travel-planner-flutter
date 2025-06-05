@@ -1,6 +1,8 @@
 // lib/screens/itinerary_detail_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/itinerary_detail.dart';
 import '../services/itinerary_service.dart';
 
@@ -29,6 +31,13 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
     );
   }
 
+  Future<void> _launchUrl(String url) async {
+    final Uri uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      throw Exception('Could not launch $url');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<ItineraryDetail>(
@@ -41,8 +50,8 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
         }
         if (snap.hasError) {
           return Scaffold(
-            appBar: AppBar(title: const Text('Detalhes')),
-            body: Center(child: Text('Erro: ${snap.error}')),
+            appBar: AppBar(title: const Text('Details')),
+            body: Center(child: Text('Error: ${snap.error}')),
           );
         }
         final detail = snap.data!;
@@ -60,7 +69,7 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
                 tabs: [
                   const Tab(text: 'Overview'),
                   for (final d in detail.days)
-                    Tab(text: 'Dia ${d.dayNumber}'),
+                    Tab(text: 'Day ${d.dayNumber}'),
                 ],
               ),
             ),
@@ -88,9 +97,28 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        detail.overview,
-                        style: const TextStyle(fontSize: 16),
+                      MarkdownBody(
+                        data: detail.overview,
+                        styleSheet: MarkdownStyleSheet(
+                          p: const TextStyle(fontSize: 16),
+                          h1: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          h2: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          h3: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        onTapLink: (text, href, title) {
+                          if (href != null) {
+                            _launchUrl(href);
+                          }
+                        },
                       ),
                     ],
                   ),
@@ -110,16 +138,40 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Dia ${day.dayNumber} — ${day.date}',
+                              'Day ${day.dayNumber} — ${day.date}',
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             const Divider(height: 24),
-                            Text(
-                              day.generatedText,
-                              style: const TextStyle(fontSize: 16),
+                            MarkdownBody(
+                              data: day.generatedText,
+                              styleSheet: MarkdownStyleSheet(
+                                p: const TextStyle(fontSize: 16),
+                                h1: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                h2: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                h3: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                blockquote: const TextStyle(
+                                  fontSize: 14,
+                                  fontStyle: FontStyle.italic,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              onTapLink: (text, href, title) {
+                                if (href != null) {
+                                  _launchUrl(href);
+                                }
+                              },
                             ),
                           ],
                         ),

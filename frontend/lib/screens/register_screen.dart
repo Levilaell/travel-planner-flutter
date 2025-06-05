@@ -41,7 +41,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Registrado com sucesso! Faça login.'),
+          content: const Text('Successfully registered! Please sign in.'),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -49,7 +49,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
     } else {
       setState(() {
-        _error = 'Falha no registro. Verifique seus dados.';
+        _error = 'Registration failed. Please check your information.';
       });
     }
   }
@@ -80,7 +80,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(width: 16),
                     Text(
-                      'Criar Nova Conta',
+                      'Create New Account',
                       style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: const Color(0xFF1E293B),
@@ -105,7 +105,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Informações da Conta',
+                          'Account Information',
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w600,
                             color: const Color(0xFF1E293B),
@@ -113,7 +113,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Preencha os dados abaixo para criar sua conta',
+                          'Fill in the information below to create your account',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: const Color(0xFF64748B),
                           ),
@@ -124,11 +124,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         TextFormField(
                           controller: _userCtrl,
                           decoration: const InputDecoration(
-                            labelText: 'Nome de usuário',
+                            labelText: 'Username',
                             prefixIcon: Icon(Icons.person_outline),
-                            hintText: 'Digite seu nome de usuário',
+                            hintText: 'Enter your username',
                           ),
-                          validator: (v) => v == null || v.isEmpty ? 'Informe o usuário' : null,
+                          validator: (v) => v == null || v.isEmpty ? 'Enter username' : null,
                         ),
                         const SizedBox(height: 20),
                         
@@ -137,11 +137,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           controller: _emailCtrl,
                           keyboardType: TextInputType.emailAddress,
                           decoration: const InputDecoration(
-                            labelText: 'E-mail',
+                            labelText: 'Email',
                             prefixIcon: Icon(Icons.email_outlined),
-                            hintText: 'seu@email.com',
+                            hintText: 'your@email.com',
                           ),
-                          validator: (v) => v == null || !v.contains('@') ? 'Informe um e-mail válido' : null,
+                          validator: (v) => v == null || !v.contains('@') ? 'Enter a valid email' : null,
                         ),
                         const SizedBox(height: 20),
                         
@@ -150,9 +150,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           controller: _passCtrl,
                           obscureText: _obscurePassword,
                           decoration: InputDecoration(
-                            labelText: 'Senha',
+                            labelText: 'Password',
                             prefixIcon: const Icon(Icons.lock_outline),
-                            hintText: 'Mínimo 6 caracteres',
+                            hintText: 'Minimum 6 characters',
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _obscurePassword ? Icons.visibility : Icons.visibility_off,
@@ -164,7 +164,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               },
                             ),
                           ),
-                          validator: (v) => v == null || v.length < 6 ? 'Mínimo 6 caracteres' : null,
+                          validator: (v) => v == null || v.length < 6 ? 'Minimum 6 characters' : null,
                         ),
                         const SizedBox(height: 20),
                         
@@ -173,9 +173,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           controller: _pass2Ctrl,
                           obscureText: _obscureConfirmPassword,
                           decoration: InputDecoration(
-                            labelText: 'Confirmar Senha',
+                            labelText: 'Confirm Password',
                             prefixIcon: const Icon(Icons.lock_outline),
-                            hintText: 'Digite a senha novamente',
+                            hintText: 'Enter password again',
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
@@ -187,7 +187,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               },
                             ),
                           ),
-                          validator: (v) => v != _passCtrl.text ? 'As senhas não conferem' : null,
+                          validator: (v) => v != _passCtrl.text ? 'Passwords don\'t match' : null,
                         ),
                         const SizedBox(height: 24),
                         
@@ -237,7 +237,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       color: Colors.white,
                                     ),
                                   )
-                                : const Text('Criar Conta'),
+                                : const Text('Create Account'),
                           ),
                         ),
                       ],
@@ -252,14 +252,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Já tem uma conta?',
+                      'Already have an account?',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: const Color(0xFF64748B),
                       ),
                     ),
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('Fazer login'),
+                      child: const Text('Sign in'),
                     ),
                   ],
                 ),

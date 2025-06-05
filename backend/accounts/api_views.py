@@ -54,8 +54,22 @@ class ProfileView(APIView):
         except TravelerProfile.DoesNotExist:
             profile = TravelerProfile.objects.create(user=request.user)
         
+        # Update user fields if provided
+        user = request.user
+        if 'first_name' in request.data:
+            user.first_name = request.data['first_name']
+        if 'last_name' in request.data:
+            user.last_name = request.data['last_name']
+        if 'email' in request.data:
+            user.email = request.data['email']
+        user.save()
+        
         serializer = TravelerProfileSerializer(profile, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
