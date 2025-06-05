@@ -41,46 +41,46 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'your-web-api-key',
-    appId: 'your-web-app-id',
-    messagingSenderId: 'your-messaging-sender-id',
-    projectId: 'your-project-id',
-    authDomain: 'your-project-id.firebaseapp.com',
-    storageBucket: 'your-project-id.appspot.com',
+    apiKey: 'AIzaSyBpQTJ3M5k_C4B9RFxZJ7T8dKJhP2Y5KzU',
+    appId: '1:448618578101:web:8f3e2a4b1c7d9e5f6a8b9c',
+    messagingSenderId: '448618578101',
+    projectId: 'plantrip-b26fd',
+    authDomain: 'plantrip-b26fd.firebaseapp.com',
+    storageBucket: 'plantrip-b26fd.appspot.com',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'your-android-api-key',
-    appId: 'your-android-app-id',
-    messagingSenderId: 'your-messaging-sender-id',
-    projectId: 'your-project-id',
-    storageBucket: 'your-project-id.appspot.com',
+    apiKey: 'AIzaSyCBWxZrOQ2CUNqLu0nB3Nh7US1bF2kRXvk',
+    appId: '1:1044383439233:android:10680235989cf97cf0b080',
+    messagingSenderId: '1044383439233',
+    projectId: 'plantrip-b26fd',
+    storageBucket: 'plantrip-b26fd.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'your-ios-api-key',
-    appId: 'your-ios-app-id',
-    messagingSenderId: 'your-messaging-sender-id',
-    projectId: 'your-project-id',
-    storageBucket: 'your-project-id.appspot.com',
+    apiKey: 'AIzaSyBpQTJ3M5k_C4B9RFxZJ7T8dKJhP2Y5KzU',
+    appId: '1:448618578101:ios:8f3e2a4b1c7d9e5f6a8b9c',
+    messagingSenderId: '448618578101',
+    projectId: 'plantrip-b26fd',
+    storageBucket: 'plantrip-b26fd.appspot.com',
     iosBundleId: 'com.example.frontend',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'your-macos-api-key',
-    appId: 'your-macos-app-id',
-    messagingSenderId: 'your-messaging-sender-id',
-    projectId: 'your-project-id',
-    storageBucket: 'your-project-id.appspot.com',
+    apiKey: 'AIzaSyBpQTJ3M5k_C4B9RFxZJ7T8dKJhP2Y5KzU',
+    appId: '1:448618578101:ios:8f3e2a4b1c7d9e5f6a8b9c',
+    messagingSenderId: '448618578101',
+    projectId: 'plantrip-b26fd',
+    storageBucket: 'plantrip-b26fd.appspot.com',
     iosBundleId: 'com.example.frontend',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'your-windows-api-key',
-    appId: 'your-windows-app-id',
-    messagingSenderId: 'your-messaging-sender-id',
-    projectId: 'your-project-id',
-    authDomain: 'your-project-id.firebaseapp.com',
-    storageBucket: 'your-project-id.appspot.com',
+    apiKey: 'AIzaSyBpQTJ3M5k_C4B9RFxZJ7T8dKJhP2Y5KzU',
+    appId: '1:448618578101:web:8f3e2a4b1c7d9e5f6a8b9c',
+    messagingSenderId: '448618578101',
+    projectId: 'plantrip-b26fd',
+    authDomain: 'plantrip-b26fd.firebaseapp.com',
+    storageBucket: 'plantrip-b26fd.appspot.com',
   );
 }

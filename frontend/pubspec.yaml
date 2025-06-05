@@ -21,10 +21,10 @@ dependencies:
   intl: ^0.19.0
   flutter_markdown: ^0.7.4+1
   url_launcher: ^6.3.1
-  firebase_core: ^3.14.0
-  cloud_firestore: ^5.8.0
-  firebase_auth: ^5.8.0
-  firebase_storage: ^12.5.0
+  firebase_core: ^3.13.1
+  cloud_firestore: ^5.6.8
+  firebase_auth: ^5.5.4
+  firebase_storage: ^12.4.6
 
 dev_dependencies:
   flutter_test:

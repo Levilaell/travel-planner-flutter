@@ -135,7 +135,7 @@ class MyApp extends StatelessWidget {
       // Chip Theme
       chipTheme: ChipThemeData(
         backgroundColor: const Color(0xFFF1F5F9),
-        selectedColor: primaryColor.withOpacity(0.1),
+        selectedColor: primaryColor.withValues(alpha: 0.1),
         side: const BorderSide(color: Color(0xFFE2E8F0)),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),

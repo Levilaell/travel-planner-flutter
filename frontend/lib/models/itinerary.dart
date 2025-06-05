@@ -22,4 +22,14 @@ class Itinerary {
       generatedText: json['generated_text'] ?? '',
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'destination': destination,
+      'start_date': startDate,
+      'end_date': endDate,
+      'generated_text': generatedText,
+    };
+  }
 }
