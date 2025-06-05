@@ -4,8 +4,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class AuthService {
   static const _storage      = FlutterSecureStorage();
-  static const _loginUrl     = 'http://127.0.0.1:8000/profile/api/login/';
-  static const _registerUrl  = 'http://127.0.0.1:8000/profile/api/register/';
+  static const _loginUrl     = 'http://192.168.21.28:8000/profile/api/login/';
+  static const _registerUrl  = 'http://192.168.21.28:8000/profile/api/register/';
 
   /// Faz login e armazena access token
   static Future<bool> login(String username, String password) async {

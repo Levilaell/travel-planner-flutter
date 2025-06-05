@@ -4,7 +4,7 @@ import '../models/itinerary.dart';
 import '../models/itinerary_detail.dart';
 
 class ItineraryService {
-  final String baseUrl = 'http://127.0.0.1:8000/itinerary/api';
+  final String baseUrl = 'http://192.168.21.28:8000/itinerary/api';
 
   Future<List<Itinerary>> fetchItineraries(String token) async {
     final url = Uri.parse('$baseUrl/itineraries/');

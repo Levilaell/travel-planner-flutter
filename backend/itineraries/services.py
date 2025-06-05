@@ -519,6 +519,8 @@ Constraints:
 - Breakfast/lunch/dinner paragraphs must describe food options.
 - Friendly tone, English, no markdown headings.
 - No extra commentary before or after the blocks; conclude with one **FINAL TIP** about {destination}.
+
+Users preferences: {extras}
 """
 
     resp = openai_chatcompletion_with_retry(
