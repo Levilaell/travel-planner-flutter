@@ -45,7 +45,7 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen> {
 
     setState(() => _isLoading = true);
 
-    final url = Uri.parse('http://127.0.0.1:8000/itinerary/api/itineraries/');
+    final url = Uri.parse('http://192.168.15.6:8000/itinerary/api/itineraries/');
     final body = {
       'destination': _destinationController.text,
       'start_date': _startDate!.toIso8601String().split('T').first,

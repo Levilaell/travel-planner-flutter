@@ -1,10 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'storage_service.dart';
 
 class AuthService {
-  static const _storage      = FlutterSecureStorage();
-  static const _baseUrl      = 'http://127.0.0.1:8000';
+  static const _baseUrl      = 'http://192.168.15.6:8000';
   static const _loginUrl     = '$_baseUrl/profile/api/login/';
   static const _registerUrl  = '$_baseUrl/profile/api/register/';
   static const _profileUrl   = '$_baseUrl/profile/api/profile/';
@@ -26,9 +25,12 @@ class AuthService {
 
       if (resp.statusCode == 200) {
         final data = jsonDecode(resp.body);
-        await _storage.write(key: 'access', value: data['token']);
+        print('✅ Login successful, token received: ${data['token']?.substring(0, 10)}...');
+        await StorageService.write(key: 'access', value: data['token']);
+        print('✅ Token stored in secure storage');
         return true;
       }
+      print('❌ Login failed with status: ${resp.statusCode}');
       return false;
     } catch (e) {
       print('❌ Erro no login: $e');
@@ -69,9 +71,9 @@ class AuthService {
   }
 
   static Future<String?> getAccessToken() async =>
-      await _storage.read(key: 'access');
+      await StorageService.read(key: 'access');
 
-  static Future<void> logout() async => await _storage.deleteAll();
+  static Future<void> logout() async => await StorageService.deleteAll();
 
   /// Busca dados do perfil do usuário
   static Future<Map<String, dynamic>?> getUserProfile() async {
