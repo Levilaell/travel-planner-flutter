@@ -1,0 +1,64 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+backend/venv/
+backend/.env
+backend/config/credentials.json
+
+# Django
+*.log
+*.pot
+*.pyc
+local_settings.py
+db.sqlite3
+media/
+staticfiles/
+
+# Flutter/Dart
+frontend/.dart_tool/
+frontend/.packages
+frontend/.pub/
+frontend/build/
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+frontend/.idea/
+frontend/*.iml
+frontend/*.ipr
+frontend/*.iws
+frontend/android/.gradle/
+frontend/android/captures/
+frontend/android/local.properties
+frontend/ios/Flutter/flutter_export_environment.sh
+frontend/ios/Pods/
+frontend/ios/.symlinks/
+frontend/ios/Flutter/Flutter.framework/
+frontend/ios/Flutter/Generated.xcconfig
+frontend/ios/Flutter/app.flx
+frontend/ios/Flutter/app.zip
+frontend/ios/Flutter/flutter_assets/
+frontend/ios/Flutter/flutter_export_environment.sh
+frontend/ios/ServiceDefinitions.json
+frontend/ios/Runner/GeneratedPluginRegistrant.*
+
+# Temporary iOS icon files that are corrupted
+frontend/ios/Runner/Assets.xcassets/AppIcon.appiconset/*.png
+
+# Android
+frontend/android/app/google-services.json
+
+# IDE
+.vscode/
+*.swp
+*.swo
+
+# OS generated files
+Thumbs.db

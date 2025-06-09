@@ -1,0 +1,490 @@
+{# templates/itineraries/dashboard.html #}
+{% extends "base.html" %}
+{% load static %}
+{% load markdownify %}
+
+{% block content %}
+<div class="container-fluid" style="background-color:#2C2C2E">
+  <div class="row full-height-row">
+
+    {# ===================== LEFT PANEL – Form ===================== #}
+    <div class="col-md-4 left-panel d-flex align-items-start flex-column p-4">
+      <h3 class="text-white">Create New Itinerary</h3>
+
+      {% if form.errors %}
+      <div class="alert alert-danger w-100">
+        <ul class="mb-0">
+          {% for field, errors in form.errors.items %}
+            {% for error in errors %}
+              <li><strong>{{ field }}:</strong> {{ error }}</li>
+            {% endfor %}
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      <form method="POST" action="{% url 'dashboard' %}" class="w-100 needs-validation" novalidate id="itineraryForm">
+        {% csrf_token %}
+      
+        <!-- Destination -->
+        <div class="mb-3">
+          <label for="destination" class="form-label">Destination *</label>
+          <input type="text" class="form-control" id="destination" name="destination"
+                 placeholder="e.g.: Natal, Brazil" required>
+          <div class="form-text">Enter a city, country, or region you wish to visit.</div>
+        </div>
+      
+        <!-- Dates -->
+        <div class="row g-2 mb-3">
+          <div class="col">
+            <label for="startDate" class="form-label">Start Date *</label>
+            <input type="date" class="form-control" id="startDate" name="start_date" required>
+          </div>
+          <div class="col">
+            <label for="endDate" class="form-label">End Date *</label>
+            <input type="date" class="form-control" id="endDate" name="end_date" required>
+          </div>
+        </div>
+      
+        <!-- Budget -->
+        <div class="mb-3">
+          <label for="budget" class="form-label">Total Budget ($)</label>
+          <input type="number" class="form-control" id="budget" name="budget" step="0.01"
+                 placeholder="e.g.: 2000">
+          <div class="form-text">How much do you plan to spend in total for the trip?</div>
+        </div>
+      
+        <!-- Number of Travelers -->
+        <div class="mb-3">
+          <label for="travelers" class="form-label">Number of Travelers</label>
+          <input type="number" class="form-control" id="travelers" name="travelers" min="1" value="1">
+        </div>
+      
+        <!-- Trip Interests -->
+        <div class="mb-3">
+          <label class="form-label d-block">Trip Interests</label>
+          <div class="row">
+            {% for interest in interests %}
+            <div class="col-md-6">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="interest{{ interest }}"
+                       name="interests_list" value="{{ interest }}">
+                <label class="form-check-label" for="interest{{ interest }}">{{ interest }}</label>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="form-text">You can select multiple interests to focus on during your trip.</div>
+        </div>
+    
+        <!-- Optional Extras -->
+        <div class="mb-3">
+          <label for="extras" class="form-label">Anything else we should consider?</label>
+          <textarea class="form-control" id="extras" name="extras" rows="3"
+                    placeholder="e.g.: Accessibility, avoid beaches, 4‑star hotels, etc."
+                    style="::placeholder { color: white; }"></textarea>
+        </div>
+      
+        <div class="text-center">
+          <button type="submit" class="btn btn-primary w-100 btn-lg shadow-sm">Generate Itinerary</button>
+        </div>
+      </form>
+      
+    </div>
+
+    {# ===================== RIGHT PANEL – Itineraries ===================== #}
+    <div class="col-md-8 px-3 right-panel">
+      <h3 class="mb-4 pt-3 text-white">My Itineraries</h3>
+
+      {% if itineraries %}
+      <div class="row p-3">
+        {% for it in itineraries %}
+        <div class="col-md-6 mb-4">
+          <div class="card h-100 p-3" style="background-color:#2c2c2e;color:#fff;">
+            <div class="card-body">
+              <h3 class="card-title">{{ it.destination }}</h3>
+              <p class="card-text">{{ it.start_date }} → {{ it.end_date }}</p>
+
+              <div class="my-2">
+                <form method="POST" action="{% url 'delete_itinerary' it.id %}" style="display:inline;">
+                  {% csrf_token %}
+                  <button class="btn btn-sm btn-outline-light" type="button"
+                          data-bs-toggle="modal" data-bs-target="#modalIt{{ it.id }}">
+                    View Details
+                  </button>
+                  <a href="{% url 'export_itinerary_pdf' it.id %}"
+                     class="btn btn-sm btn-outline-light">Download PDF</a>
+                  <button type="submit" class="btn btn-sm btn-outline-danger"
+                          onclick="return confirm('Are you sure you want to delete this itinerary?')">
+                    Delete
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {# ---------- DETAILS MODAL ---------- #}
+        <div class="modal fade" id="modalIt{{ it.id }}" tabindex="-1"
+             aria-labelledby="modalItLabel{{ it.id }}" aria-hidden="true">
+          <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content" style="background-color:#202023;color:#fff;">
+              <div class="modal-header">
+                <h5 class="modal-title" id="modalItLabel{{ it.id }}">
+                  {{ it.destination }} - {{ it.start_date }} → {{ it.end_date }}
+                </h5>
+                <button type="button" class="btn-close btn-close-white"
+                        data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+
+              <div class="modal-body">
+                <h5>Overview</h5>
+                <div class="ai-text mb-3">{{ it.generated_text|markdownify }}</div>
+
+                <h5>Days</h5>
+                <ul class="nav nav-tabs mt-3" id="daysTab{{ it.id }}" role="tablist">
+                  {% for d in it.days.all|dictsort:"day_number" %}
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if forloop.first %}active{% endif %}"
+                            id="day{{ it.id }}-{{ d.id }}-tab"
+                            data-bs-toggle="tab" data-bs-target="#day{{ it.id }}-{{ d.id }}"
+                            type="button" role="tab">
+                      Day {{ d.day_number }}
+                    </button>
+                  </li>
+                  {% endfor %}
+                </ul>
+
+                <div class="tab-content mt-3" id="daysTabContent{{ it.id }}">
+                  {% for d in it.days.all|dictsort:"day_number" %}
+                  <div class="tab-pane fade {% if forloop.first %}show active{% endif %}"
+                       id="day{{ it.id }}-{{ d.id }}" role="tabpanel">
+                    <div class="result-card mb-3">
+                      <div class="ai-text" data-dayid="{{ d.id }}">{{ d.generated_text|markdownify|safe }}
+                      <div class="places-photo-gallery row mt-3" id="photos-for-day-{{ d.id }}"></div>
+                      </div>
+                      {# optional: fallback, can keep or remove #}
+
+                      {% if d.places_visited %}
+                      <div class="mt-3">
+                        <strong>Places (Edit individually):</strong>
+                        <div id="day-places-{{ d.id }}"
+                             data-places='{{ d.places_visited|safe }}'></div>
+
+                        <script>
+                          (function(){
+                            const container = document.getElementById("day-places-{{ d.id }}");
+                            const rawData = `{{ d.places_visited|safe }}`;
+                            try {
+                              const arr = JSON.parse(rawData);
+                              if (Array.isArray(arr)) {
+                                let html = "";
+                                arr.forEach((p, idx) => {
+                                  const name = p.name || "Unknown place";
+                                  html += `
+                                    <div class="mt-2">
+                                      ${idx+1}. ${name}
+                                      <button class="btn btn-sm btn-link text-warning replace-place-btn"
+                                              data-dayid="{{ d.id }}" data-index="${idx}"
+                                              data-bs-toggle="modal" data-bs-target="#replaceModal">
+                                        🔄
+                                      </button>
+                                    </div>`;
+                                });
+                                container.innerHTML = html;
+                              }
+                            } catch(e){}
+                          })();
+                        </script>
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+
+                <h5>Map</h5>
+                <div id="map{{ it.id }}"
+                     data-lat="{{ it.lat|floatformat:'6' }}"
+                     data-lng="{{ it.lng|floatformat:'6' }}"
+                     data-markers='{{ it.markers_json|escape }}'
+                     style="height:400px; border:1px solid #3a3a3c; border-radius:6px;"></div>
+              </div>
+
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-light"
+                        data-bs-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        {# ---------- /DETAILS MODAL ---------- #}
+        {% endfor %}
+      </div>
+      {% else %}
+        <p class="text-white">No itineraries created yet...</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{# =================== REPLACE PLACE MODAL =================== #}
+<div class="modal fade" id="replaceModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered" style="color:#fff;">
+    <div class="modal-content" style="background-color:#202023;">
+      <div class="modal-header">
+        <h5 class="modal-title">Replace Place</h5>
+        <button type="button" class="btn-close btn-close-white"
+                data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" action="{% url 'replace_place' %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <input type="hidden" id="replaceDayId" name="day_id">
+          <input type="hidden" id="replaceIndex" name="place_index">
+          <div class="mb-3">
+            <label for="replaceObservation" class="form-label">
+              Note / Preference for the new location
+            </label>
+            <textarea class="form-control" id="replaceObservation" name="observation"
+                      rows="3" placeholder="e.g.: I'd like something more central, without repeating places, or with local cuisine"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-light"
+                  data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Confirm Replacement</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# =================== LOADING OVERLAY =================== #}
+<div id="loadingOverlay" style="display:none;">
+  <div class="loading-backdrop"></div>
+  <div class="loading-box text-center">
+    <div class="spinner-border text-light" role="status" style="width:4rem; height:4rem;"></div>
+    <div class="progress mt-4" style="height:10px;">
+      <div id="loadingBar" class="progress-bar bg-primary" role="progressbar" style="width:0%;"></div>
+    </div>
+    <p id="loadingText" class="mt-3 fs-5 text-white">Preparing itinerary...</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+/* ---------- UTIL ---------- */
+function normalizeText(str) {
+  return (str||"")
+    .normalize("NFD")            // separate accents
+    .replace(/[\u0300-\u036f]/g, "")  // remove accents
+    .replace(/[^\w\s]/g, " ")    // remove punctuation
+    .toLowerCase()
+    .trim();
+}
+
+/* ---------- PHOTO ---------- */
+const photoCache = new Map();            // key = query, value = url
+
+function textMatchesPlace(elText, placeName) {
+  const a = normalizeText(elText);
+  const b = normalizeText(placeName);
+  return a.includes(b);
+}
+
+/* ---------- PHOTO ---------- */
+function insertPhotoInGallery(dayId, placeName, photoUrl) {
+  // 1) find the div containing the description for that day
+  const aiContainer = document.querySelector(`.ai-text[data-dayid="${dayId}"]`);
+  if (!aiContainer) return;
+
+  /* 2) iterate over all text elements within the description
+        until finding the first whose text contains the place name */
+  const walker = document.createTreeWalker(aiContainer, NodeFilter.SHOW_ELEMENT, null);
+  let targetEl = null;
+  while (walker.nextNode()) {
+    const el = walker.currentNode;
+    if (textMatchesPlace(el.textContent, placeName)) {
+      targetEl = el;                   // found the paragraph/header for the place
+      break;
+    }
+  }
+
+  // 3) if not found, append the photo to the fallback gallery at the end
+  if (!targetEl) {
+    const fallback = document.getElementById(`photos-for-day-${dayId}`);
+    if (fallback) {
+      fallback.insertAdjacentHTML(
+        "beforeend",
+        `<div class="col-12 mb-3">
+           <img src="${photoUrl}" class="img-fluid rounded" alt="Photo of ${placeName}">
+         </div>`
+      );
+    }
+    return;
+  }
+
+  // 4) insert the image immediately AFTER the found text element
+  targetEl.insertAdjacentHTML(
+    "afterend",
+    `<div class="my-3">
+       <img src="${photoUrl}" class="img-fluid rounded w-100" alt="Photo of ${placeName}">
+     </div>`
+  );
+}
+
+/* remains the same – we've just removed the reference to day-places‑… */
+function fetchPhotosForPlaces(dayId, placesJson, destination) {
+  let places;
+  try { places = JSON.parse(placesJson); } catch { return; }
+
+  places.forEach(place => {
+    const query = `${place.name}, ${destination}`;
+    const cacheKey = query.toLowerCase();
+
+    if (photoCache.has(cacheKey)) {
+      insertPhotoInGallery(dayId, place.name, photoCache.get(cacheKey));
+      return;
+    }
+
+    const googleUrl =
+      `https://maps.googleapis.com/maps/api/place/findplacefromtext/json` +
+      `?input=${encodeURIComponent(query)}` +
+      `&inputtype=textquery&fields=photos&key={{ googlemaps_key }}`;
+
+      fetch("{% url 'proxy_google_places' %}?url=" + encodeURIComponent(googleUrl), {
+        credentials: "same-origin",
+        headers: { "X-CSRFToken": getCSRF() }
+      })
+      .then(r => r.json())
+      .then(data => {
+        let photoUrl;
+        const ref = data.candidates?.[0]?.photos?.[0]?.photo_reference;
+
+        photoUrl = ref
+          ? "{% url 'proxy_google_photo' %}?photo_ref=" + ref
+          : `https://source.unsplash.com/600x400/?${encodeURIComponent(place.name + ' ' + destination)}`;
+
+        photoCache.set(cacheKey, photoUrl);
+        insertPhotoInGallery(dayId, place.name, photoUrl);
+      })
+      .catch(err => console.error("Photo error:", err));
+  });
+}
+</script>
+
+
+
+<script>
+/* ---------- LOADER / FORM ---------- */
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("itineraryForm");
+  const overlay = document.getElementById("loadingOverlay");
+  const bar = document.getElementById("loadingBar");
+  const text = document.getElementById("loadingText");
+
+  const msgs = [
+    "Analyzing destination...",
+    "Selecting best spots...",
+    "Optimizing routes...",
+    "Planning unique experiences...",
+    "Generating perfect itinerary..."
+  ];
+  let p = 0, idx = 0, iv;
+
+  function startLoader() {
+    overlay.style.display = "flex";
+    p = 0; idx = 0;
+    bar.style.width = "0%";
+    text.textContent = msgs[0];
+
+    iv = setInterval(() => {
+      p += Math.random() * 5;
+      bar.style.width = `${Math.min(p, 100)}%`;
+      if (p >= 20 && idx < 1) text.textContent = msgs[(idx = 1)];
+      if (p >= 40 && idx < 2) text.textContent = msgs[(idx = 2)];
+      if (p >= 60 && idx < 3) text.textContent = msgs[(idx = 3)];
+      if (p >= 80 && idx < 4) text.textContent = msgs[(idx = 4)];
+    }, 400);
+  }
+
+  form?.addEventListener("submit", startLoader);
+});
+</script>
+
+<script>
+/* ---------- GOOGLE MAPS / MODAL ---------- */
+function initAutocomplete() {
+  const destInput = document.getElementById("destination");
+  if (destInput) {
+    new google.maps.places.Autocomplete(destInput, { types: ["(cities)"] });
+  }
+
+  /* photos + map when the user opens a modal */
+  document.querySelectorAll(".modal.fade").forEach(modal => {
+    modal.addEventListener("shown.bs.modal", () => {
+      const id = modal.getAttribute("id");
+      if (!id?.startsWith("modalIt")) return;
+
+      const itinId = id.replace("modalIt", "");
+      initMultipleMarkers(itinId);
+
+      /* photos */
+      modal.querySelectorAll('[id^="day-places-"]').forEach(div => {
+        const dayId      = div.id.replace("day-places-", "");
+        const placesJson = div.dataset.places;
+        if (placesJson) {
+            const destination =
+                modal.querySelector(".modal-title")
+                     ?.textContent.split(" - ")[0].trim() || "";
+            fetchPhotosForPlaces(dayId, placesJson, destination);
+        }
+      });
+    });
+  });
+}
+
+function initMultipleMarkers(itineraryId) {
+  const mapDiv = document.getElementById("map" + itineraryId);
+  if (!mapDiv) return;
+
+  let markers = [];
+  try { markers = JSON.parse(mapDiv.dataset.markers || "[]"); } catch {}
+
+  let lat = parseFloat(mapDiv.dataset.lat);
+  let lng = parseFloat(mapDiv.dataset.lng);
+  if (isNaN(lat) || isNaN(lng)) { lat = markers[0]?.lat; lng = markers[0]?.lng; }
+
+  const map = new google.maps.Map(mapDiv, { zoom: 12, center: { lat, lng } });
+  const bounds = new google.maps.LatLngBounds();
+
+  markers.forEach(m => {
+    if (m.lat && m.lng) {
+      const pos = { lat: m.lat, lng: m.lng };
+      new google.maps.Marker({ position: pos, map, title: m.name });
+      bounds.extend(pos);
+    }
+  });
+  if (markers.length > 1) map.fitBounds(bounds);
+}
+
+/* auto‑open newly created modal (kept) */
+document.addEventListener("DOMContentLoaded", () => {
+  const autoId = "{{ new_itinerary_id|default:'' }}";
+  if (autoId) new bootstrap.Modal(document.getElementById("modalIt" + autoId)).show();
+
+  /* fill hidden fields for replacing a place */
+  document.body.addEventListener("click", e => {
+    if (e.target?.classList.contains("replace-place-btn")) {
+      document.getElementById("replaceDayId").value = e.target.dataset.dayid;
+      document.getElementById("replaceIndex").value = e.target.dataset.index;
+      document.getElementById("replaceObservation").value = "";
+    }
+  });
+});
+</script>
+
+<script src="https://maps.googleapis.com/maps/api/js?key={{ googlemaps_key }}&libraries=places&callback=initAutocomplete" async defer></script>
+{% endblock %}
