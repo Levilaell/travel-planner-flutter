@@ -67,12 +67,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Hello! 👋',
-                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF1E293B),
-                            ),
+                          Row(
+                            children: [
+                              Text(
+                                'Welcome to plantrip.ai ',
+                                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF1E293B),
+                                ),
+                              ),
+                              Icon(
+                                Icons.flight_takeoff,
+                                color: const Color(0xFF1E293B),
+                                size: 28,
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 4),
                           Text(
@@ -110,12 +119,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(
-                          Icons.flight_takeoff,
-                          color: Colors.white,
-                          size: 32,
-                        ),
-                        const SizedBox(height: 16),
                         Text(
                           'Create your itinerary',
                           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
