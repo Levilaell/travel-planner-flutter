@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'storage_service.dart';
 
 class AuthService {
-  static const _baseUrl      = 'http://192.168.22.105:8000';
+  static const _baseUrl      = 'http://192.168.15.6:8000';
   static const _loginUrl     = '$_baseUrl/profile/api/login/';
   static const _registerUrl  = '$_baseUrl/profile/api/register/';
   static const _profileUrl   = '$_baseUrl/profile/api/profile/';

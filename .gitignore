@@ -12,6 +12,7 @@ venv/
 ENV/
 backend/venv/
 backend/.env
+backend/.env.bak
 backend/config/credentials.json
 
 # Django
